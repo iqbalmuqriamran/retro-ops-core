@@ -17,8 +17,8 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow: string; title:
 }
 
 /* ---------- Card ---------- */
-export function Block({ children, className = "", as: As = "div" }: { children: ReactNode; className?: string; as?: any }) {
-  return <As className={`brutal-border bg-card ${className}`}>{children}</As>;
+export function Block({ children, className = "", onClick }: { children: ReactNode; className?: string; onClick?: () => void }) {
+  return <div onClick={onClick} className={`brutal-border bg-card ${className}`}>{children}</div>;
 }
 
 /* ---------- Button ---------- */
