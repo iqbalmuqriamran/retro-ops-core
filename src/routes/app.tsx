@@ -70,7 +70,7 @@ function AppLayout() {
             return (
               <Link
                 key={item.to}
-                to={item.to}
+                to={item.to as any}
                 className={`group flex items-center gap-3 px-3 py-3 brutal-border border-transparent font-display uppercase text-sm tracking-wider transition-colors ${
                   active
                     ? "bg-primary text-primary-foreground border-cream"
