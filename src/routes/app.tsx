@@ -11,7 +11,7 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const NAV = [
+const NAV: { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean }[] = [
   { to: "/app", label: "Overview", icon: LayoutGrid, exact: true },
   { to: "/app/customers", label: "Customers", icon: Users },
   { to: "/app/tickets", label: "Tickets", icon: TicketIcon },
@@ -19,7 +19,7 @@ const NAV = [
   { to: "/app/inventory", label: "Inventory", icon: Package },
   { to: "/app/services", label: "Services", icon: BookOpen },
   { to: "/app/finance", label: "Finance", icon: Receipt },
-] as const;
+];
 
 function AppLayout() {
   const { user, logout, reset } = useStore();
