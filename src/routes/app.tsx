@@ -55,8 +55,7 @@ function AppLayout() {
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}
                 className="min-w-0"
               >
-                <div className="font-display text-lg uppercase leading-none truncate">GW <span className="text-primary">666</span></div>
-                <div className="font-mono text-[10px] uppercase tracking-widest opacity-60">Shah Alam Branch</div>
+                <div className="font-display text-base uppercase leading-none truncate tracking-tight">GADGETS WORLD <span className="text-primary">666</span></div>
               </motion.div>
             )}
           </AnimatePresence>
