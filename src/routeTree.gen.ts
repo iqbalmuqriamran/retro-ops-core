@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppWorkshopRouteImport } from './routes/app.workshop'
 import { Route as AppTicketsRouteImport } from './routes/app.tickets'
+import { Route as AppStaffRouteImport } from './routes/app.staff'
 import { Route as AppServicesRouteImport } from './routes/app.services'
 import { Route as AppInventoryRouteImport } from './routes/app.inventory'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
@@ -44,6 +45,11 @@ const AppTicketsRoute = AppTicketsRouteImport.update({
   path: '/tickets',
   getParentRoute: () => AppRoute,
 } as any)
+const AppStaffRoute = AppStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppServicesRoute = AppServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/app/finance': typeof AppFinanceRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/services': typeof AppServicesRoute
+  '/app/staff': typeof AppStaffRoute
   '/app/tickets': typeof AppTicketsRoute
   '/app/workshop': typeof AppWorkshopRoute
   '/app/': typeof AppIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/app/finance': typeof AppFinanceRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/services': typeof AppServicesRoute
+  '/app/staff': typeof AppStaffRoute
   '/app/tickets': typeof AppTicketsRoute
   '/app/workshop': typeof AppWorkshopRoute
   '/app': typeof AppIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/app/finance': typeof AppFinanceRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/services': typeof AppServicesRoute
+  '/app/staff': typeof AppStaffRoute
   '/app/tickets': typeof AppTicketsRoute
   '/app/workshop': typeof AppWorkshopRoute
   '/app/': typeof AppIndexRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/inventory'
     | '/app/services'
+    | '/app/staff'
     | '/app/tickets'
     | '/app/workshop'
     | '/app/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/inventory'
     | '/app/services'
+    | '/app/staff'
     | '/app/tickets'
     | '/app/workshop'
     | '/app'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/inventory'
     | '/app/services'
+    | '/app/staff'
     | '/app/tickets'
     | '/app/workshop'
     | '/app/'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTicketsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/staff': {
+      id: '/app/staff'
+      path: '/staff'
+      fullPath: '/app/staff'
+      preLoaderRoute: typeof AppStaffRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/services': {
       id: '/app/services'
       path: '/services'
@@ -211,6 +230,7 @@ interface AppRouteChildren {
   AppFinanceRoute: typeof AppFinanceRoute
   AppInventoryRoute: typeof AppInventoryRoute
   AppServicesRoute: typeof AppServicesRoute
+  AppStaffRoute: typeof AppStaffRoute
   AppTicketsRoute: typeof AppTicketsRoute
   AppWorkshopRoute: typeof AppWorkshopRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -221,6 +241,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceRoute: AppFinanceRoute,
   AppInventoryRoute: AppInventoryRoute,
   AppServicesRoute: AppServicesRoute,
+  AppStaffRoute: AppStaffRoute,
   AppTicketsRoute: AppTicketsRoute,
   AppWorkshopRoute: AppWorkshopRoute,
   AppIndexRoute: AppIndexRoute,
@@ -235,13 +256,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
