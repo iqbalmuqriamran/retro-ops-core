@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useStore, uid, PRESET_USERS, type Job } from "@/lib/store";
 import { PageHeader, Block, Btn, Drawer, Field, inputCls, Badge, Empty } from "@/components/brutalist";
-import { Wrench, Plus } from "lucide-react";
+import { Wrench, Plus, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/app/workshop")({
   component: WorkshopPage,
@@ -19,10 +19,17 @@ function WorkshopPage() {
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
-    return jobs.filter(j => {
-      const t = tickets.find(tt => tt.id === j.ticketId);
-      return !s || j.id.includes(s) || (t?.issue.toLowerCase().includes(s));
-    });
+    return jobs
+      .filter(j => {
+        const t = tickets.find(tt => tt.id === j.ticketId);
+        return !s || j.id.includes(s) || (t?.issue.toLowerCase().includes(s));
+      })
+      .slice()
+      .sort((a, b) => {
+        const ta = tickets.find(t => t.id === a.ticketId)?.createdAt ?? "";
+        const tb = tickets.find(t => t.id === b.ticketId)?.createdAt ?? "";
+        return tb.localeCompare(ta);
+      });
   }, [jobs, tickets, q]);
 
   const selected = jobs.find(j => j.id === selectedId);
@@ -36,14 +43,6 @@ function WorkshopPage() {
     return partsTotal + svcTotal + j.laborCost;
   };
 
-  const togglePart = (id: string) => {
-    if (!selected) return;
-    update("jobs", prev => prev.map(j => j.id === selected.id ? { ...j, partIds: j.partIds.includes(id) ? j.partIds.filter(x => x !== id) : [...j.partIds, id] } : j));
-  };
-  const toggleSvc = (id: string) => {
-    if (!selected) return;
-    update("jobs", prev => prev.map(j => j.id === selected.id ? { ...j, serviceIds: j.serviceIds.includes(id) ? j.serviceIds.filter(x => x !== id) : [...j.serviceIds, id] } : j));
-  };
   const setField = (k: keyof Job, v: any) => {
     if (!selected) return;
     update("jobs", prev => prev.map(j => j.id === selected.id ? { ...j, [k]: v } : j));
@@ -59,9 +58,7 @@ function WorkshopPage() {
     if (ticketForSelected) {
       update("tickets", prev => prev.map(t => t.id === ticketForSelected.id ? { ...t, status: "Completed" } : t));
     }
-    // Decrement stock
     selected.partIds.forEach(pid => update("parts", prev => prev.map(p => p.id === pid ? { ...p, stock: Math.max(0, p.stock - 1) } : p)));
-    // Invoice: create or mark paid
     const existing = invoices.find(i => i.jobId === selected.id);
     const subtotal = total; const tax = Math.round(total * 0.06); const grand = subtotal + tax;
     if (existing) {
@@ -72,8 +69,14 @@ function WorkshopPage() {
     toast.success(`JOB ${selected.id.toUpperCase()} CLOSED // INVOICE PAID`);
   };
 
-  // Create job for tickets not yet jobs
-  const openTicketsNoJob = tickets.filter(t => t.status !== "Completed" && !jobs.some(j => j.ticketId === t.id));
+  const openTicketsNoJob = useMemo(
+    () => tickets
+      .filter(t => t.status !== "Completed" && !jobs.some(j => j.ticketId === t.id))
+      .slice()
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")),
+    [tickets, jobs]
+  );
+
   const createJob = (ticketId: string) => {
     const id = uid("j");
     update("jobs", prev => [...prev, { id, ticketId, diagnosis: "", actions: [], assignedTo: "u4", laborCost: 0, partIds: [], serviceIds: [], status: "In Progress" }]);
@@ -85,7 +88,43 @@ function WorkshopPage() {
     <div>
       <PageHeader eyebrow="Sector 04 · Workshop" title="Technician Job Floor" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+      {/* Awaiting Workshop on LEFT and bigger; jobs list on the right */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(360px,1.1fr)_1fr] gap-4">
+        <Block className="p-5 brutal-shadow bg-ink text-cream h-fit">
+          <div className="flex items-center justify-between border-b-4 border-primary pb-3 mb-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-accent">PRIORITY · QUEUE</p>
+              <h3 className="font-display text-2xl uppercase leading-none mt-1">Awaiting Workshop</h3>
+            </div>
+            <div className="brutal-border border-cream bg-primary px-3 py-2 font-display text-lg">{openTicketsNoJob.length}</div>
+          </div>
+          {openTicketsNoJob.length === 0 ? <p className="font-mono text-xs opacity-70">▢ Queue empty. All clear.</p> : (
+            <div className="space-y-3">
+              {openTicketsNoJob.map(t => {
+                const c = customers.find(cc => cc.id === t.customerId);
+                const d = devices.find(dd => dd.id === t.deviceId);
+                return (
+                  <div key={t.id} className="brutal-border border-cream bg-cream/5 p-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <div className="font-display uppercase text-sm leading-tight truncate">{t.issue}</div>
+                        <div className="font-mono text-[10px] opacity-70 mt-1 truncate">{c?.name} · {d?.brand} {d?.model}</div>
+                      </div>
+                      <Badge tone={t.priority === "High" ? "red" : "muted"}>{t.priority === "High" && <AlertTriangle className="inline w-3 h-3 mr-1" />}{t.priority}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="font-mono text-[10px] opacity-60">Filed {t.createdAt}</div>
+                      <button onClick={() => createJob(t.id)} className="brutal-border border-cream bg-primary px-3 py-1.5 font-display text-[11px] uppercase tracking-widest">
+                        <Plus className="inline w-3 h-3 mr-1" /> Open
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Block>
+
         <div>
           <Block className="p-3 mb-3 brutal-shadow-sm">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="SEARCH JOBS" className="w-full bg-transparent font-mono text-sm uppercase focus:outline-none px-2 py-2" />
@@ -115,25 +154,6 @@ function WorkshopPage() {
             </div>
           )}
         </div>
-
-        <Block className="p-4 brutal-shadow-sm bg-ink text-cream h-fit">
-          <h3 className="font-display text-sm uppercase border-b-2 border-cream pb-2 mb-3">Awaiting Workshop</h3>
-          {openTicketsNoJob.length === 0 ? <p className="font-mono text-xs opacity-70">No queue.</p> : (
-            <div className="space-y-2">
-              {openTicketsNoJob.map(t => (
-                <div key={t.id} className="brutal-border border-cream p-2 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-mono text-[11px] truncate">{t.issue}</div>
-                    <div className="font-mono text-[10px] opacity-60">{t.priority}</div>
-                  </div>
-                  <button onClick={() => createJob(t.id)} className="brutal-border border-cream bg-primary px-2 py-1 font-display text-[10px] uppercase">
-                    <Plus className="inline w-3 h-3" /> Open
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Block>
       </div>
 
       <Drawer open={!!selected} onClose={() => setSelectedId(null)} title={selected ? `Job ${selected.id.toUpperCase()}` : ""} width={620}>
@@ -167,32 +187,6 @@ function WorkshopPage() {
                 {selected.actions.map((a, i) => <div key={i} className="font-mono text-xs">▶ {a}</div>)}
               </div>
               <ActionAdd onAdd={addAction} />
-            </div>
-
-            <div>
-              <div className="font-display text-[11px] uppercase tracking-widest mb-1.5">Parts Consumed</div>
-              <div className="grid grid-cols-2 gap-2">
-                {parts.map(p => (
-                  <button key={p.id} onClick={() => togglePart(p.id)}
-                    className={`brutal-border p-2 text-left ${selected.partIds.includes(p.id) ? "bg-primary text-primary-foreground" : "bg-background"}`}>
-                    <div className="font-display text-[11px] uppercase truncate">{p.name}</div>
-                    <div className="font-mono text-[10px] opacity-80">RM{p.price} · STK {p.stock}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="font-display text-[11px] uppercase tracking-widest mb-1.5">Services Performed</div>
-              <div className="grid grid-cols-2 gap-2">
-                {services.map(s => (
-                  <button key={s.id} onClick={() => toggleSvc(s.id)}
-                    className={`brutal-border p-2 text-left ${selected.serviceIds.includes(s.id) ? "bg-ink text-cream" : "bg-background"}`}>
-                    <div className="font-display text-[11px] uppercase truncate">{s.name}</div>
-                    <div className="font-mono text-[10px] opacity-80">RM{s.basePrice} · {s.durationHrs}H</div>
-                  </button>
-                ))}
-              </div>
             </div>
 
             <Block className="p-4 bg-ink text-cream">

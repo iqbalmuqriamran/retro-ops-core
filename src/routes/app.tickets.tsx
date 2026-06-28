@@ -9,7 +9,7 @@ export const Route = createFileRoute("/app/tickets")({
   component: TicketsPage,
 });
 
-const PRIORITIES: Ticket["priority"][] = ["Low", "Medium", "High"];
+const PRIORITIES: Ticket["priority"][] = ["Normal", "High"];
 const STATUSES: Ticket["status"][] = ["Open", "Diagnosing", "Approved", "Completed"];
 
 function TicketsPage() {
@@ -18,13 +18,16 @@ function TicketsPage() {
   const [status, setStatus] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Ticket | null>(null);
-  const [form, setForm] = useState({ customerId: "", deviceId: "", issue: "", priority: "Medium" as Ticket["priority"] });
+  const [form, setForm] = useState({ customerId: "", deviceId: "", issue: "", priority: "Normal" as Ticket["priority"] });
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
-    return tickets.filter(t => (status === "all" || t.status === status) &&
-      (!s || t.issue.toLowerCase().includes(s) || t.id.includes(s) ||
-       (customers.find(c => c.id === t.customerId)?.name.toLowerCase().includes(s))));
+    return tickets
+      .filter(t => (status === "all" || t.status === status) &&
+        (!s || t.issue.toLowerCase().includes(s) || t.id.includes(s) ||
+         (customers.find(c => c.id === t.customerId)?.name.toLowerCase().includes(s))))
+      .slice()
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   }, [tickets, q, status, customers]);
 
   const cusDevices = devices.filter(d => d.customerId === form.customerId);
@@ -33,7 +36,7 @@ function TicketsPage() {
     if (!form.customerId || !form.deviceId || !form.issue.trim()) { toast.error("CUSTOMER + DEVICE + ISSUE REQUIRED"); return; }
     update("tickets", p => [...p, { id: uid("t"), ...form, status: "Open", createdAt: new Date().toISOString().slice(0, 10) }]);
     toast.success("TICKET LOGGED // QUEUE OPEN");
-    setForm({ customerId: "", deviceId: "", issue: "", priority: "Medium" });
+    setForm({ customerId: "", deviceId: "", issue: "", priority: "Normal" });
     setOpen(false);
   };
 
@@ -70,7 +73,7 @@ function TicketsPage() {
                 <div onClick={() => setSelected(t)}>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[11px]">#{t.id.toUpperCase()}</span>
-                    <Badge tone={t.priority === "High" ? "red" : t.priority === "Medium" ? "yellow" : "muted"}>{t.priority}</Badge>
+                    <Badge tone={t.priority === "High" ? "red" : "muted"}>{t.priority}</Badge>
                   </div>
                   <h3 className="font-display text-lg uppercase mt-2 leading-tight">{t.issue}</h3>
                   <div className="font-mono text-xs mt-2 text-muted-foreground">{cus?.name} · {dev?.brand} {dev?.model}</div>
@@ -106,7 +109,7 @@ function TicketsPage() {
             <div className="flex gap-2">
               {PRIORITIES.map(p => (
                 <button key={p} type="button" onClick={() => setForm({ ...form, priority: p })}
-                  className={`flex-1 brutal-border py-2.5 font-display uppercase text-xs ${form.priority === p ? (p === "High" ? "bg-primary text-primary-foreground" : p === "Medium" ? "bg-accent" : "bg-ink text-cream") : "bg-card"}`}>{p}</button>
+                  className={`flex-1 brutal-border py-2.5 font-display uppercase text-xs ${form.priority === p ? (p === "High" ? "bg-primary text-primary-foreground" : "bg-ink text-cream") : "bg-card"}`}>{p}</button>
               ))}
             </div>
           </Field>

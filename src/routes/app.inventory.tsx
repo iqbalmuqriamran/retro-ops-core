@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useStore, uid } from "@/lib/store";
+import { useStore, uid, type Part } from "@/lib/store";
 import { PageHeader, Block, Btn, Modal, Field, inputCls, Badge, Empty } from "@/components/brutalist";
 import { Plus, Search, AlertTriangle, Truck } from "lucide-react";
 
@@ -9,13 +9,16 @@ export const Route = createFileRoute("/app/inventory")({
   component: InventoryPage,
 });
 
+const blankPart = { name: "", sku: "", stock: 0, lowStock: 5, price: 0, compatibility: "", supplierId: "" };
+
 function InventoryPage() {
   const { parts, suppliers, update } = useStore();
   const [tab, setTab] = useState<"parts" | "suppliers">("parts");
   const [q, setQ] = useState("");
   const [partOpen, setPartOpen] = useState(false);
   const [supOpen, setSupOpen] = useState(false);
-  const [pf, setPf] = useState({ name: "", sku: "", stock: 0, lowStock: 5, price: 0, compatibility: "", supplierId: "" });
+  const [editingPart, setEditingPart] = useState<Part | null>(null);
+  const [pf, setPf] = useState(blankPart);
   const [sf, setSf] = useState({ name: "", contact: "", phone: "", email: "" });
 
   const filteredParts = useMemo(() => parts.filter(p => {
@@ -25,11 +28,34 @@ function InventoryPage() {
     const v = q.toLowerCase(); return !v || s.name.toLowerCase().includes(v) || s.contact.toLowerCase().includes(v);
   }), [suppliers, q]);
 
+  const openAddPart = () => {
+    setEditingPart(null);
+    setPf(blankPart);
+    setPartOpen(true);
+  };
+  const openEditPart = (p: Part) => {
+    setEditingPart(p);
+    setPf({ name: p.name, sku: p.sku, stock: p.stock, lowStock: p.lowStock, price: p.price, compatibility: p.compatibility, supplierId: p.supplierId });
+    setPartOpen(true);
+  };
   const submitPart = () => {
     if (!pf.name.trim() || !pf.sku.trim()) { toast.error("NAME + SKU REQUIRED"); return; }
-    update("parts", prev => [...prev, { id: uid("p"), ...pf }]);
-    toast.success("PART ADDED TO INVENTORY");
-    setPf({ name: "", sku: "", stock: 0, lowStock: 5, price: 0, compatibility: "", supplierId: "" });
+    if (editingPart) {
+      update("parts", prev => prev.map(p => p.id === editingPart.id ? { ...p, ...pf } : p));
+      toast.success("PART UPDATED");
+    } else {
+      update("parts", prev => [...prev, { id: uid("p"), ...pf }]);
+      toast.success("PART ADDED TO INVENTORY");
+    }
+    setPf(blankPart);
+    setEditingPart(null);
+    setPartOpen(false);
+  };
+  const deletePart = () => {
+    if (!editingPart) return;
+    update("parts", prev => prev.filter(p => p.id !== editingPart.id));
+    toast.success("PART REMOVED");
+    setEditingPart(null);
     setPartOpen(false);
   };
   const submitSup = () => {
@@ -39,7 +65,8 @@ function InventoryPage() {
     setSf({ name: "", contact: "", phone: "", email: "" });
     setSupOpen(false);
   };
-  const adjust = (id: string, delta: number) => {
+  const adjust = (e: React.MouseEvent, id: string, delta: number) => {
+    e.stopPropagation();
     update("parts", prev => prev.map(p => p.id === id ? { ...p, stock: Math.max(0, p.stock + delta) } : p));
   };
 
@@ -47,7 +74,7 @@ function InventoryPage() {
     <div>
       <PageHeader eyebrow="Sector 05 · Inventory" title="Parts & Suppliers"
         action={tab === "parts"
-          ? <Btn variant="primary" onClick={() => setPartOpen(true)}><Plus className="inline w-4 h-4 mr-1" /> Add Part</Btn>
+          ? <Btn variant="primary" onClick={openAddPart}><Plus className="inline w-4 h-4 mr-1" /> Add Part</Btn>
           : <Btn variant="primary" onClick={() => setSupOpen(true)}><Plus className="inline w-4 h-4 mr-1" /> Add Supplier</Btn>}
       />
 
@@ -69,7 +96,7 @@ function InventoryPage() {
               const low = p.stock <= p.lowStock;
               const critical = p.stock <= Math.ceil(p.lowStock / 2);
               return (
-                <Block key={p.id} className={`p-4 brutal-shadow-sm ${critical ? "bg-primary text-primary-foreground" : low ? "bg-accent" : ""}`}>
+                <Block key={p.id} onClick={() => openEditPart(p)} className={`p-4 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform ${critical ? "bg-primary text-primary-foreground" : low ? "bg-accent" : ""}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-mono text-[10px] uppercase opacity-70">{p.sku}</div>
@@ -90,8 +117,8 @@ function InventoryPage() {
                     </div>
                   </div>
                   <div className="mt-3 flex gap-1">
-                    <button onClick={() => adjust(p.id, -1)} className="brutal-border bg-background text-ink px-3 py-1 font-display text-xs">−</button>
-                    <button onClick={() => adjust(p.id, +1)} className="brutal-border bg-background text-ink px-3 py-1 font-display text-xs">+</button>
+                    <button onClick={(e) => adjust(e, p.id, -1)} className="brutal-border bg-background text-ink px-3 py-1 font-display text-xs">−</button>
+                    <button onClick={(e) => adjust(e, p.id, +1)} className="brutal-border bg-background text-ink px-3 py-1 font-display text-xs">+</button>
                     <div className="flex-1 text-right font-mono text-[10px] uppercase truncate self-center">▶ {sup?.name ?? "no supplier"}</div>
                   </div>
                 </Block>
@@ -120,7 +147,7 @@ function InventoryPage() {
         )
       )}
 
-      <Modal open={partOpen} onClose={() => setPartOpen(false)} title="Add Spare Part">
+      <Modal open={partOpen} onClose={() => setPartOpen(false)} title={editingPart ? `Edit Part · ${editingPart.sku}` : "Add Spare Part"}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Part Name"><input className={inputCls} value={pf.name} onChange={e => setPf({ ...pf, name: e.target.value })} /></Field>
@@ -138,7 +165,13 @@ function InventoryPage() {
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
-          <div className="flex justify-end gap-2 pt-2"><Btn variant="ghost" onClick={() => setPartOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={submitPart}>Save Part</Btn></div>
+          <div className="flex justify-between items-center pt-2">
+            {editingPart ? <Btn variant="dark" onClick={deletePart}>Delete</Btn> : <span />}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={() => setPartOpen(false)}>Cancel</Btn>
+              <Btn variant="primary" onClick={submitPart}>{editingPart ? "Save Changes" : "Save Part"}</Btn>
+            </div>
+          </div>
         </div>
       </Modal>
 

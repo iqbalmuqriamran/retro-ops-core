@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { PageHeader, Block, Badge } from "@/components/brutalist";
@@ -16,6 +16,7 @@ const MONTHLY = [
 
 function Dashboard() {
   const { tickets, jobs, parts, invoices, services } = useStore();
+  const navigate = useNavigate();
   const activeJobs = jobs.filter(j => j.status !== "Completed").length;
   const pending = tickets.filter(t => t.status === "Open" || t.status === "Diagnosing").length;
   const lowStock = parts.filter(p => p.stock <= p.lowStock).length;
@@ -28,14 +29,23 @@ function Dashboard() {
 
   const COLORS = ["var(--blood)", "var(--ink)", "var(--industrial)", "var(--navy)", "#888"];
 
-  const Stat = ({ icon: Icon, label, value, tone }: any) => (
-    <Block className={`p-5 ${tone === "red" ? "bg-primary text-primary-foreground" : tone === "yellow" ? "bg-accent" : tone === "ink" ? "bg-ink text-cream" : ""} brutal-shadow-sm`}>
+  const latestTickets = useMemo(
+    () => tickets.slice().sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")).slice(0, 5),
+    [tickets]
+  );
+
+  const Stat = ({ icon: Icon, label, value, tone, onClick }: any) => (
+    <Block
+      onClick={onClick}
+      className={`p-5 ${tone === "red" ? "bg-primary text-primary-foreground" : tone === "yellow" ? "bg-accent" : tone === "ink" ? "bg-ink text-cream" : ""} brutal-shadow-sm ${onClick ? "cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform" : ""}`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] opacity-80">{label}</p>
         <Icon className="w-5 h-5 shrink-0" />
       </div>
       <div className="font-display text-5xl mt-3 leading-none">{value}</div>
       <div className="mt-3 h-1 w-12 bg-current opacity-60" />
+      {onClick && <div className="mt-2 font-mono text-[10px] uppercase tracking-widest opacity-70">▶ OPEN MODULE</div>}
     </Block>
   );
 
@@ -44,9 +54,9 @@ function Dashboard() {
       <PageHeader eyebrow="Sector 01 · Overview" title="Operations Console" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Stat icon={Activity} label="Active Jobs" value={activeJobs} tone="ink" />
-        <Stat icon={TI} label="Pending Tickets" value={pending} tone="red" />
-        <Stat icon={AlertTriangle} label="Low Stock Parts" value={lowStock} tone="yellow" />
+        <Stat icon={Activity} label="Active Jobs" value={activeJobs} tone="ink" onClick={() => navigate({ to: "/app/workshop" })} />
+        <Stat icon={TI} label="Pending Tickets" value={pending} tone="red" onClick={() => navigate({ to: "/app/tickets" })} />
+        <Stat icon={AlertTriangle} label="Low Stock Parts" value={lowStock} tone="yellow" onClick={() => navigate({ to: "/app/inventory" })} />
         <Stat icon={Wallet} label="Revenue Settled" value={`RM${today}`} />
       </div>
 
@@ -95,11 +105,11 @@ function Dashboard() {
         <Block className="p-5 brutal-shadow-sm">
           <h3 className="font-display text-lg uppercase mb-3 border-b-4 border-ink pb-2">Latest Tickets</h3>
           <div className="space-y-2">
-            {tickets.slice(0, 5).map(t => (
+            {latestTickets.map(t => (
               <div key={t.id} className="grid grid-cols-[auto_1fr_auto] gap-3 items-center brutal-border p-2.5 bg-background">
                 <span className="font-mono text-[11px]">#{t.id.toUpperCase()}</span>
                 <span className="font-mono text-xs truncate">{t.issue}</span>
-                <Badge tone={t.priority === "High" ? "red" : t.priority === "Medium" ? "yellow" : "muted"}>{t.priority}</Badge>
+                <Badge tone={t.priority === "High" ? "red" : "muted"}>{t.priority}</Badge>
               </div>
             ))}
           </div>
