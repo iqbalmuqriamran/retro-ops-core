@@ -18,10 +18,13 @@ function FinancePage() {
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
-    return invoices.filter(i => {
-      const cus = customers.find(c => c.id === i.customerId);
-      return !s || i.id.includes(s) || cus?.name.toLowerCase().includes(s);
-    });
+    return invoices
+      .filter(i => {
+        const cus = customers.find(c => c.id === i.customerId);
+        return !s || i.id.includes(s) || cus?.name.toLowerCase().includes(s);
+      })
+      .slice()
+      .sort((a, b) => ((b.paidAt ?? b.createdAt) ?? "").localeCompare((a.paidAt ?? a.createdAt) ?? ""));
   }, [invoices, q, customers]);
 
   const totals = {

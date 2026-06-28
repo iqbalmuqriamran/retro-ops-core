@@ -16,11 +16,14 @@ export const PRESET_USERS: User[] = [
   { id: "u4", name: "Hafiz Tan", email: "tech@gw666.my", role: "Technician" },
 ];
 
+export const DEVICE_CONDITIONS = ["Good", "Used - Minor Issues", "Damaged"] as const;
+export type DeviceCondition = typeof DEVICE_CONDITIONS[number];
+
 export interface Customer { id: string; name: string; phone: string; email: string; address: string; createdAt: string; }
-export interface Device { id: string; customerId: string; brand: string; model: string; serial: string; condition: string; issue: string; }
+export interface Device { id: string; customerId: string; brand: string; model: string; serial: string; condition: DeviceCondition; issue: string; }
 export interface Ticket {
   id: string; customerId: string; deviceId: string; issue: string;
-  priority: "Low" | "Medium" | "High";
+  priority: "Normal" | "High";
   status: "Open" | "Diagnosing" | "Approved" | "Completed";
   createdAt: string; assignedTo?: string;
 }
@@ -36,8 +39,11 @@ export interface Invoice {
   id: string; jobId: string; customerId: string; subtotal: number; tax: number; total: number;
   status: "Unpaid" | "Paid"; method?: "Cash" | "Card" | "E-Wallet"; createdAt: string; paidAt?: string;
 }
+export interface Staff {
+  id: string; name: string; email: string; role: Role; phone: string;
+  joinedAt: string; salary: number; ic: string;
+}
 
-// ---------- Seed data ----------
 const seedCustomers: Customer[] = [
   { id: "c1", name: "Nurul Aiman", phone: "012-3456789", email: "nurul@mail.my", address: "Seksyen 7, Shah Alam", createdAt: "2025-06-01" },
   { id: "c2", name: "Lim Wei Jie", phone: "017-8889991", email: "weijie@mail.my", address: "Seksyen 13, Shah Alam", createdAt: "2025-06-10" },
@@ -45,16 +51,16 @@ const seedCustomers: Customer[] = [
   { id: "c4", name: "Siti Hajar", phone: "013-7770001", email: "siti@mail.my", address: "Subang Jaya", createdAt: "2025-06-18" },
 ];
 const seedDevices: Device[] = [
-  { id: "d1", customerId: "c1", brand: "iPhone", model: "13 Pro", serial: "F2LXQ19PMN", condition: "Used - Cracked screen", issue: "Screen replacement" },
+  { id: "d1", customerId: "c1", brand: "iPhone", model: "13 Pro", serial: "F2LXQ19PMN", condition: "Damaged", issue: "Screen replacement" },
   { id: "d2", customerId: "c2", brand: "Samsung", model: "S22 Ultra", serial: "R58N40ABCD", condition: "Good", issue: "Battery draining fast" },
-  { id: "d3", customerId: "c3", brand: "Xiaomi", model: "Mi 11", serial: "MI11XX2024", condition: "Water damaged", issue: "Won't power on" },
-  { id: "d4", customerId: "c1", brand: "iPad", model: "Air 4", serial: "DMPCJ5XPQR", condition: "Good", issue: "Charging port loose" },
+  { id: "d3", customerId: "c3", brand: "Xiaomi", model: "Mi 11", serial: "MI11XX2024", condition: "Damaged", issue: "Won't power on" },
+  { id: "d4", customerId: "c1", brand: "iPad", model: "Air 4", serial: "DMPCJ5XPQR", condition: "Used - Minor Issues", issue: "Charging port loose" },
 ];
 const seedTickets: Ticket[] = [
   { id: "t1", customerId: "c1", deviceId: "d1", issue: "Cracked screen replacement", priority: "High", status: "Diagnosing", createdAt: "2025-06-20", assignedTo: "u4" },
-  { id: "t2", customerId: "c2", deviceId: "d2", issue: "Battery replacement", priority: "Medium", status: "Approved", createdAt: "2025-06-21", assignedTo: "u4" },
+  { id: "t2", customerId: "c2", deviceId: "d2", issue: "Battery replacement", priority: "Normal", status: "Approved", createdAt: "2025-06-21", assignedTo: "u4" },
   { id: "t3", customerId: "c3", deviceId: "d3", issue: "Water damage diagnostics", priority: "High", status: "Open", createdAt: "2025-06-23" },
-  { id: "t4", customerId: "c1", deviceId: "d4", issue: "Charging port repair", priority: "Low", status: "Open", createdAt: "2025-06-24" },
+  { id: "t4", customerId: "c1", deviceId: "d4", issue: "Charging port repair", priority: "Normal", status: "Open", createdAt: "2025-06-24" },
 ];
 const seedJobs: Job[] = [
   { id: "j1", ticketId: "t1", diagnosis: "LCD assembly cracked, digitizer non-responsive.", actions: ["Disassembled device", "Ordered OEM screen"], assignedTo: "u4", laborCost: 80, partIds: ["p1"], serviceIds: ["s1"], status: "In Progress" },
@@ -82,15 +88,23 @@ const seedServices: Service[] = [
 const seedInvoices: Invoice[] = [
   { id: "inv1", jobId: "j1", customerId: "c1", subtotal: 650, tax: 39, total: 689, status: "Unpaid", createdAt: "2025-06-22" },
 ];
+const seedStaff: Staff[] = [
+  { id: "u1", name: "Mohd Kamarulhelmy", email: "owner@gw666.my", role: "Owner", phone: "012-9000001", joinedAt: "2020-01-15", salary: 12000, ic: "850101-10-0001" },
+  { id: "u2", name: "Putera Danial Isaac", email: "manager@gw666.my", role: "Branch Manager", phone: "013-9000002", joinedAt: "2021-04-22", salary: 6500, ic: "900202-14-0002" },
+  { id: "u3", name: "Aisyah Rahman", email: "cashier@gw666.my", role: "Cashier", phone: "017-9000003", joinedAt: "2023-07-10", salary: 2800, ic: "010303-10-0003" },
+  { id: "u4", name: "Hafiz Tan", email: "tech@gw666.my", role: "Technician", phone: "019-9000004", joinedAt: "2022-09-05", salary: 3800, ic: "980404-08-0004" },
+];
 
 interface DataState {
   customers: Customer[]; devices: Device[]; tickets: Ticket[]; jobs: Job[];
   parts: Part[]; suppliers: Supplier[]; services: Service[]; invoices: Invoice[];
+  staff: Staff[];
 }
 
 const SEED: DataState = {
   customers: seedCustomers, devices: seedDevices, tickets: seedTickets, jobs: seedJobs,
   parts: seedParts, suppliers: seedSuppliers, services: seedServices, invoices: seedInvoices,
+  staff: seedStaff,
 };
 
 interface Store extends DataState {
@@ -102,7 +116,7 @@ interface Store extends DataState {
 }
 
 const Ctx = createContext<Store | null>(null);
-const LS_KEY = "gw666_data_v1";
+const LS_KEY = "gw666_data_v2";
 const LS_USER = "gw666_user_v1";
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -110,7 +124,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (typeof window === "undefined") return SEED;
     try {
       const raw = localStorage.getItem(LS_KEY);
-      return raw ? JSON.parse(raw) : SEED;
+      if (!raw) return SEED;
+      const parsed = JSON.parse(raw);
+      // ensure staff present if user upgrading
+      if (!parsed.staff) parsed.staff = seedStaff;
+      return parsed;
     } catch { return SEED; }
   });
   const [user, setUser] = useState<User | null>(() => {

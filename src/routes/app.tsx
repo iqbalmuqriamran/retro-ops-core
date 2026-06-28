@@ -4,14 +4,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
 import {
   LayoutGrid, Users, Ticket as TicketIcon, Wrench, Package, BookOpen,
-  Receipt, LogOut, Menu, Power, RefreshCcw,
+  Receipt, LogOut, Menu, Power, RefreshCcw, UserCog,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const NAV: { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean }[] = [
+type NavItem = { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean; ownerOnly?: boolean };
+
+const NAV: NavItem[] = [
   { to: "/app", label: "Overview", icon: LayoutGrid, exact: true },
   { to: "/app/customers", label: "Customers", icon: Users },
   { to: "/app/tickets", label: "Tickets", icon: TicketIcon },
@@ -19,6 +21,7 @@ const NAV: { to: string; label: string; icon: typeof LayoutGrid; exact?: boolean
   { to: "/app/inventory", label: "Inventory", icon: Package },
   { to: "/app/services", label: "Services", icon: BookOpen },
   { to: "/app/finance", label: "Finance", icon: Receipt },
+  { to: "/app/staff", label: "Staff", icon: UserCog, ownerOnly: true },
 ];
 
 function AppLayout() {
@@ -63,7 +66,7 @@ function AppLayout() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-          {NAV.map(item => {
+          {NAV.filter(item => !item.ownerOnly || user.role === "Owner").map(item => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to) && item.to !== "/app";
             const Icon = item.icon;
             return (
