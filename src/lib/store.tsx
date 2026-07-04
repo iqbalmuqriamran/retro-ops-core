@@ -64,8 +64,8 @@ const seedTickets: Ticket[] = [
   { id: "t4", customerId: "c1", deviceId: "d4", issue: "Charging port repair", priority: "Normal", status: "Open", createdAt: "2025-06-24" },
 ];
 const seedJobs: Job[] = [
-  { id: "j1", ticketId: "t1", diagnosis: "LCD assembly cracked, digitizer non-responsive.", actions: ["Disassembled device", "Ordered OEM screen"], assignedTo: "u4", laborCost: 80, partIds: ["p1"], serviceIds: ["s1"], status: "In Progress" },
-  { id: "j2", ticketId: "t2", diagnosis: "Battery health 62%. Recommend replacement.", actions: ["Battery diagnostic complete"], assignedTo: "u4", laborCost: 50, partIds: ["p2"], serviceIds: ["s2"], status: "Awaiting Parts" },
+  { id: "j1", ticketId: "t1", diagnosis: "LCD assembly cracked, digitizer non-responsive.", actions: ["Disassembled device", "Ordered OEM screen"], assignedTo: "u4", serviceId: "s1", partLines: [{ partId: "p1", qty: 1 }], status: "In Progress" },
+  { id: "j2", ticketId: "t2", diagnosis: "Battery health 62%. Recommend replacement.", actions: ["Battery diagnostic complete"], assignedTo: "u4", serviceId: "s2", partLines: [{ partId: "p2", qty: 1 }], status: "Awaiting Parts" },
 ];
 const seedParts: Part[] = [
   { id: "p1", name: "iPhone 13 Pro OLED", sku: "IP13P-SCR", stock: 4, lowStock: 5, price: 420, compatibility: "iPhone 13 Pro", supplierId: "sp1" },
