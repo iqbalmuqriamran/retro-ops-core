@@ -27,9 +27,10 @@ export interface Ticket {
   status: "Open" | "Diagnosing" | "Approved" | "Completed";
   createdAt: string; assignedTo?: string;
 }
+export interface JobPartLine { partId: string; qty: number; }
 export interface Job {
   id: string; ticketId: string; diagnosis: string; actions: string[];
-  assignedTo: string; laborCost: number; partIds: string[]; serviceIds: string[];
+  assignedTo: string; serviceId: string; partLines: JobPartLine[];
   status: "In Progress" | "Awaiting Parts" | "Completed";
 }
 export interface Part { id: string; name: string; sku: string; stock: number; lowStock: number; price: number; compatibility: string; supplierId: string; }
