@@ -16,6 +16,7 @@ const MONTHLY = [
 
 function Dashboard() {
   const { tickets, jobs, parts, invoices, services } = useStore();
+  const [chartOpen, setChartOpen] = useState<null | "bar" | "pie">(null);
   const navigate = useNavigate();
   const activeJobs = jobs.filter(j => j.status !== "Completed").length;
   const pending = tickets.filter(t => t.status === "Open" || t.status === "Diagnosing").length;
