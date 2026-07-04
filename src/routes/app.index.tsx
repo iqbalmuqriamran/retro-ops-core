@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { PageHeader, Block, Badge } from "@/components/brutalist";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
-import { Activity, AlertTriangle, Wallet, TicketIcon as TI } from "lucide-react";
+import { PageHeader, Block, Badge, Modal } from "@/components/brutalist";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, PieChart, Pie, Tooltip } from "recharts";
+import { Activity, AlertTriangle, Wallet, TicketIcon as TI, Maximize2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
