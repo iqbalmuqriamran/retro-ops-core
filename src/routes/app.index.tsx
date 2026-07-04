@@ -61,13 +61,16 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Block className="lg:col-span-2 p-5 brutal-shadow-sm">
+        <Block onClick={() => setChartOpen("bar")} className="lg:col-span-2 p-5 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 01</p>
               <h3 className="font-display text-xl uppercase">Monthly Repairs</h3>
             </div>
-            <Badge tone="red">YTD</Badge>
+            <div className="flex items-center gap-2">
+              <Badge tone="red">YTD</Badge>
+              <Maximize2 className="w-4 h-4 opacity-60" />
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={MONTHLY}>
@@ -78,11 +81,17 @@ function Dashboard() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          <div className="mt-2 font-mono text-[10px] uppercase tracking-widest opacity-70">▶ Click chart for detail breakdown</div>
         </Block>
 
-        <Block className="p-5 brutal-shadow-sm">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 02</p>
-          <h3 className="font-display text-xl uppercase mb-2">Revenue Breakdown</h3>
+        <Block onClick={() => setChartOpen("pie")} className="p-5 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 02</p>
+              <h3 className="font-display text-xl uppercase mb-2">Revenue Breakdown</h3>
+            </div>
+            <Maximize2 className="w-4 h-4 opacity-60" />
+          </div>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={revenueByService} dataKey="v" nameKey="name" innerRadius={40} outerRadius={80} stroke="var(--ink)" strokeWidth={2}>
