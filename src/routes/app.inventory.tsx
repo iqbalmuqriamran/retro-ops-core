@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useStore, uid, type Part } from "@/lib/store";
-import { PageHeader, Block, Btn, Modal, Field, inputCls, Badge, Empty } from "@/components/brutalist";
+import { PageHeader, Block, Btn, Modal, Field, inputCls, Badge, Empty, RowActions, Combobox } from "@/components/brutalist";
 import { Plus, Search, AlertTriangle, Truck } from "lucide-react";
 
 export const Route = createFileRoute("/app/inventory")({
