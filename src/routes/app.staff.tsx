@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useStore, uid, type Staff, type Role } from "@/lib/store";
-import { PageHeader, Block, Btn, Modal, Field, inputCls, Badge, Empty } from "@/components/brutalist";
+import { PageHeader, Block, Btn, Modal, Field, inputCls, Badge, Empty, RowActions } from "@/components/brutalist";
 import { Plus, ShieldAlert, UserCog, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/app/staff")({
