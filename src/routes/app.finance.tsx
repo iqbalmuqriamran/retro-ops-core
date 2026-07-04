@@ -119,13 +119,14 @@ function FinancePage() {
             <div className="py-3 border-b border-dashed border-accent/50 space-y-1">
               {sJob && (
                 <>
-                  {sJob.serviceIds.map(id => { const sv = services.find(s => s.id === id); if (!sv) return null;
-                    return <div key={id} className="flex justify-between"><span>SVC · {sv.name.toUpperCase()}</span><span>RM{sv.basePrice}</span></div>;
+                  {(() => {
+                    const sv = services.find(s => s.id === sJob.serviceId);
+                    return sv ? <div className="flex justify-between"><span>SVC · {sv.name.toUpperCase()}</span><span>RM{sv.basePrice}</span></div> : null;
+                  })()}
+                  {sJob.partLines.map(pl => {
+                    const p = parts.find(pp => pp.id === pl.partId); if (!p) return null;
+                    return <div key={pl.partId} className="flex justify-between"><span>PRT · {p.name.toUpperCase()} ×{pl.qty}</span><span>RM{p.price * pl.qty}</span></div>;
                   })}
-                  {sJob.partIds.map(id => { const p = parts.find(pp => pp.id === id); if (!p) return null;
-                    return <div key={id} className="flex justify-between"><span>PRT · {p.name.toUpperCase()}</span><span>RM{p.price}</span></div>;
-                  })}
-                  <div className="flex justify-between"><span>LABOR</span><span>RM{sJob.laborCost}</span></div>
                 </>
               )}
             </div>
