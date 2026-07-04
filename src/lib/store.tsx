@@ -117,8 +117,24 @@ interface Store extends DataState {
 }
 
 const Ctx = createContext<Store | null>(null);
-const LS_KEY = "gw666_data_v2";
+const LS_KEY = "gw666_data_v3";
 const LS_USER = "gw666_user_v1";
+
+function migrate(parsed: any): DataState {
+  if (!parsed.staff) parsed.staff = seedStaff;
+  if (Array.isArray(parsed.jobs)) {
+    parsed.jobs = parsed.jobs.map((j: any) => {
+      if (j.partLines && j.serviceId !== undefined) return j;
+      const partLines = Array.isArray(j.partLines)
+        ? j.partLines
+        : (j.partIds ?? []).map((id: string) => ({ partId: id, qty: 1 }));
+      const serviceId = j.serviceId ?? (j.serviceIds?.[0] ?? "");
+      const { partIds: _a, serviceIds: _b, laborCost: _c, ...rest } = j;
+      return { ...rest, partLines, serviceId };
+    });
+  }
+  return parsed as DataState;
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DataState>(() => {
@@ -126,10 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return SEED;
-      const parsed = JSON.parse(raw);
-      // ensure staff present if user upgrading
-      if (!parsed.staff) parsed.staff = seedStaff;
-      return parsed;
+      return migrate(JSON.parse(raw));
     } catch { return SEED; }
   });
   const [user, setUser] = useState<User | null>(() => {
