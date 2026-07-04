@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useStore, uid, type Ticket } from "@/lib/store";
-import { PageHeader, Block, Btn, Modal, Drawer, Field, inputCls, Badge, Empty } from "@/components/brutalist";
+import { PageHeader, Block, Btn, Modal, Drawer, Field, inputCls, Badge, Empty, Combobox, RowActions } from "@/components/brutalist";
 import { Plus, Search } from "lucide-react";
 
 export const Route = createFileRoute("/app/tickets")({
@@ -11,14 +11,16 @@ export const Route = createFileRoute("/app/tickets")({
 
 const PRIORITIES: Ticket["priority"][] = ["Normal", "High"];
 const STATUSES: Ticket["status"][] = ["Open", "Diagnosing", "Approved", "Completed"];
+const blankForm = { customerId: "", deviceId: "", issue: "", priority: "Normal" as Ticket["priority"] };
 
 function TicketsPage() {
   const { tickets, customers, devices, update } = useStore();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Ticket | null>(null);
   const [selected, setSelected] = useState<Ticket | null>(null);
-  const [form, setForm] = useState({ customerId: "", deviceId: "", issue: "", priority: "Normal" as Ticket["priority"] });
+  const [form, setForm] = useState(blankForm);
 
   const filtered = useMemo(() => {
     const s = q.toLowerCase();
@@ -32,23 +34,34 @@ function TicketsPage() {
 
   const cusDevices = devices.filter(d => d.customerId === form.customerId);
 
-  const submit = () => {
-    if (!form.customerId || !form.deviceId || !form.issue.trim()) { toast.error("CUSTOMER + DEVICE + ISSUE REQUIRED"); return; }
-    update("tickets", p => [...p, { id: uid("t"), ...form, status: "Open", createdAt: new Date().toISOString().slice(0, 10) }]);
-    toast.success("TICKET LOGGED // QUEUE OPEN");
-    setForm({ customerId: "", deviceId: "", issue: "", priority: "Normal" });
-    setOpen(false);
+  const openNew = () => { setEditing(null); setForm(blankForm); setOpen(true); };
+  const openEdit = (t: Ticket) => {
+    setEditing(t);
+    setForm({ customerId: t.customerId, deviceId: t.deviceId, issue: t.issue, priority: t.priority });
+    setOpen(true);
   };
 
-  const setStatusOf = (id: string, s: Ticket["status"]) => {
-    update("tickets", prev => prev.map(t => t.id === id ? { ...t, status: s } : t));
-    toast.success(`TICKET ${id.toUpperCase()} → ${s.toUpperCase()}`);
+  const submit = () => {
+    if (!form.customerId || !form.deviceId || !form.issue.trim()) { toast.error("CUSTOMER + DEVICE + ISSUE REQUIRED"); return; }
+    if (editing) {
+      update("tickets", prev => prev.map(t => t.id === editing.id ? { ...t, ...form } : t));
+      toast.success("TICKET UPDATED");
+    } else {
+      update("tickets", p => [...p, { id: uid("t"), ...form, status: "Open", createdAt: new Date().toISOString().slice(0, 10) }]);
+      toast.success("TICKET LOGGED // QUEUE OPEN");
+    }
+    setForm(blankForm); setEditing(null); setOpen(false);
+  };
+
+  const removeTicket = (t: Ticket) => {
+    update("tickets", prev => prev.filter(x => x.id !== t.id));
+    toast.success(`TICKET ${t.id.toUpperCase()} REMOVED`);
   };
 
   return (
     <div>
       <PageHeader eyebrow="Sector 03 · Intake" title="Ticketing Center"
-        action={<Btn variant="primary" onClick={() => setOpen(true)}><Plus className="inline w-4 h-4 mr-1" /> New Ticket Intake</Btn>}
+        action={<Btn variant="primary" onClick={openNew}><Plus className="inline w-4 h-4 mr-1" /> New Ticket Intake</Btn>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mb-4">
@@ -68,21 +81,24 @@ function TicketsPage() {
           {filtered.map(t => {
             const cus = customers.find(c => c.id === t.customerId);
             const dev = devices.find(d => d.id === t.deviceId);
+            const statusTone = t.status === "Completed" ? "navy" : t.status === "Approved" ? "yellow" : t.status === "Diagnosing" ? "ink" : "red";
             return (
-              <Block key={t.id} className="p-4 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform" >
-                <div onClick={() => setSelected(t)}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px]">#{t.id.toUpperCase()}</span>
+              <Block key={t.id} className="p-4 brutal-shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-mono text-[11px]">#{t.id.toUpperCase()}</span>
+                  <div className="flex items-center gap-2">
                     <Badge tone={t.priority === "High" ? "red" : "muted"}>{t.priority}</Badge>
+                    <RowActions onEdit={() => openEdit(t)} onDelete={() => removeTicket(t)} />
                   </div>
+                </div>
+                <div className="cursor-pointer" onClick={() => setSelected(t)}>
                   <h3 className="font-display text-lg uppercase mt-2 leading-tight">{t.issue}</h3>
                   <div className="font-mono text-xs mt-2 text-muted-foreground">{cus?.name} · {dev?.brand} {dev?.model}</div>
                   <div className="font-mono text-[10px] uppercase mt-1">Filed {t.createdAt}</div>
                 </div>
-                <div className="mt-3 flex gap-1 flex-wrap">
-                  {STATUSES.map(s => (
-                    <button key={s} onClick={() => setStatusOf(t.id, s)} className={`px-2 py-1 brutal-border text-[10px] font-display uppercase ${t.status === s ? "bg-ink text-cream" : "bg-background"}`}>{s}</button>
-                  ))}
+                <div className="mt-3 flex items-center justify-between border-t-2 border-ink pt-2">
+                  <span className="font-mono text-[10px] uppercase opacity-70">Status</span>
+                  <Badge tone={statusTone as any}>{t.status}</Badge>
                 </div>
               </Block>
             );
@@ -90,19 +106,24 @@ function TicketsPage() {
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New Ticket Intake">
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? `Edit Ticket · ${editing.id.toUpperCase()}` : "New Ticket Intake"}>
         <div className="space-y-3">
           <Field label="Customer">
-            <select className={inputCls} value={form.customerId} onChange={e => setForm({ ...form, customerId: e.target.value, deviceId: "" })}>
-              <option value="">— select —</option>
-              {customers.map(c => <option key={c.id} value={c.id}>{c.name} · {c.phone}</option>)}
-            </select>
+            <Combobox
+              value={form.customerId}
+              onChange={v => setForm({ ...form, customerId: v, deviceId: "" })}
+              options={customers.map(c => ({ id: c.id, label: c.name, meta: c.phone }))}
+              placeholder="SEARCH CUSTOMER"
+            />
           </Field>
           <Field label="Device">
-            <select className={inputCls} value={form.deviceId} onChange={e => setForm({ ...form, deviceId: e.target.value })} disabled={!form.customerId}>
-              <option value="">— select —</option>
-              {cusDevices.map(d => <option key={d.id} value={d.id}>{d.brand} {d.model} · {d.serial}</option>)}
-            </select>
+            <Combobox
+              value={form.deviceId}
+              onChange={v => setForm({ ...form, deviceId: v })}
+              options={cusDevices.map(d => ({ id: d.id, label: `${d.brand} ${d.model}`, meta: d.serial }))}
+              placeholder={form.customerId ? "SEARCH DEVICE" : "SELECT CUSTOMER FIRST"}
+              disabled={!form.customerId}
+            />
           </Field>
           <Field label="Issue Description"><textarea rows={3} className={inputCls} value={form.issue} onChange={e => setForm({ ...form, issue: e.target.value })} /></Field>
           <Field label="Priority">
@@ -113,7 +134,7 @@ function TicketsPage() {
               ))}
             </div>
           </Field>
-          <div className="flex justify-end gap-2 pt-2"><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={submit}>Log Ticket</Btn></div>
+          <div className="flex justify-end gap-2 pt-2"><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={submit}>{editing ? "Save Changes" : "Log Ticket"}</Btn></div>
         </div>
       </Modal>
 
@@ -136,7 +157,7 @@ function TicketsPage() {
                   <div><span className="opacity-60 uppercase text-[10px]">Filed</span><br/>{selected.createdAt}</div>
                 </div>
               </Block>
-              <div className="font-mono text-[11px] uppercase text-muted-foreground">Transition status via the cards on the main grid.</div>
+              <div className="font-mono text-[11px] uppercase text-muted-foreground">Status advances automatically through the Workshop pipeline.</div>
             </div>
           );
         })()}
@@ -144,3 +165,4 @@ function TicketsPage() {
     </div>
   );
 }
+
