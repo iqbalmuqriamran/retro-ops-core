@@ -94,15 +94,17 @@ function InventoryPage() {
             {filteredParts.map(p => {
               const sup = suppliers.find(s => s.id === p.supplierId);
               const low = p.stock <= p.lowStock;
-              const critical = p.stock <= Math.ceil(p.lowStock / 2);
               return (
-                <Block key={p.id} onClick={() => openEditPart(p)} className={`p-4 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform ${critical ? "bg-primary text-primary-foreground" : low ? "bg-accent" : ""}`}>
+                <Block key={p.id} onClick={() => openEditPart(p)} className={`p-4 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform ${low ? "bg-primary text-primary-foreground" : ""}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-mono text-[10px] uppercase opacity-70">{p.sku}</div>
                       <h3 className="font-display text-lg uppercase leading-tight">{p.name}</h3>
                     </div>
-                    {low && <AlertTriangle className="w-5 h-5 shrink-0" />}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {low && <AlertTriangle className="w-5 h-5" />}
+                      <RowActions onEdit={() => openEditPart(p)} onDelete={() => { update("parts", prev => prev.filter(x => x.id !== p.id)); toast.success("PART REMOVED"); }} />
+                    </div>
                   </div>
                   <div className="mt-3 font-mono text-xs">⚙ {p.compatibility}</div>
                   <div className="mt-3 grid grid-cols-2 gap-2 items-end">
