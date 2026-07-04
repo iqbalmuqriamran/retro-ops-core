@@ -17,11 +17,11 @@ function CustomersPage() {
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deviceModal, setDeviceModal] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
   const [deviceForm, setDeviceForm] = useState<DeviceForm>(blankDevice);
-  // customer id that just got created – used to target the auto-linked device
   const [linkTarget, setLinkTarget] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -35,14 +35,33 @@ function CustomersPage() {
   const selected = customers.find(c => c.id === selectedId);
   const selectedDevices = devices.filter(d => d.customerId === selectedId);
 
+  const openNew = () => { setEditingCustomer(null); setForm({ name: "", phone: "", email: "", address: "" }); setModalOpen(true); };
+  const openEditCustomer = (c: Customer) => {
+    setEditingCustomer(c);
+    setForm({ name: c.name, phone: c.phone, email: c.email, address: c.address });
+    setModalOpen(true);
+  };
+  const deleteCustomer = (c: Customer) => {
+    update("customers", prev => prev.filter(x => x.id !== c.id));
+    update("devices", prev => prev.filter(d => d.customerId !== c.id));
+    toast.success(`CUSTOMER ${c.name.toUpperCase()} REMOVED`);
+  };
+
   const submitCustomer = () => {
     if (!form.name.trim() || !form.phone.trim()) { toast.error("NAME + PHONE REQUIRED"); return; }
+    if (editingCustomer) {
+      update("customers", prev => prev.map(c => c.id === editingCustomer.id ? { ...c, ...form } : c));
+      toast.success("CUSTOMER UPDATED");
+      setEditingCustomer(null);
+      setForm({ name: "", phone: "", email: "", address: "" });
+      setModalOpen(false);
+      return;
+    }
     const newId = uid("c");
     update("customers", prev => [...prev, { id: newId, ...form, createdAt: new Date().toISOString().slice(0, 10) }]);
     toast.success("CUSTOMER REGISTERED // LINK DEVICE");
     setForm({ name: "", phone: "", email: "", address: "" });
     setModalOpen(false);
-    // Immediately prompt link device for this new customer
     setLinkTarget(newId);
     setEditingDevice(null);
     setDeviceForm(blankDevice);
