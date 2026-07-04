@@ -56,13 +56,16 @@ function ServicesPage() {
           {services.map((s, i) => {
             const accent = i % 3 === 0 ? "bg-primary text-primary-foreground" : i % 3 === 1 ? "bg-accent" : "bg-ink text-cream";
             return (
-              <Block key={s.id} onClick={() => openEdit(s)} className="brutal-shadow-sm overflow-hidden cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform">
-                <div className={`${accent} p-4 border-b-4 border-ink`}>
-                  <div className="flex items-start justify-between">
+              <Block key={s.id} className="brutal-shadow-sm overflow-hidden">
+                <div className={`${accent} p-4 border-b-4 border-ink relative`}>
+                  <div className="absolute top-3 right-3">
+                    <RowActions onEdit={() => openEdit(s)} onDelete={() => { update("services", prev => prev.filter(x => x.id !== s.id)); toast.success("SERVICE REMOVED"); }} />
+                  </div>
+                  <div className="flex items-start justify-between pr-10">
                     <Tag className="w-5 h-5" />
                     <div className="font-display text-3xl">RM{s.basePrice}</div>
                   </div>
-                  <h3 className="font-display text-xl uppercase mt-2 leading-tight">{s.name}</h3>
+                  <h3 className="font-display text-xl uppercase mt-2 leading-tight cursor-pointer" onClick={() => openEdit(s)}>{s.name}</h3>
                 </div>
                 <div className="p-4">
                   <p className="font-mono text-xs text-muted-foreground">{s.description}</p>
