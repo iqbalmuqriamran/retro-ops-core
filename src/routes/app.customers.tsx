@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useStore, uid, DEVICE_CONDITIONS, type Device, type DeviceCondition } from "@/lib/store";
-import { PageHeader, Block, Btn, Drawer, Modal, Field, inputCls, Badge, Empty } from "@/components/brutalist";
+import { useStore, uid, DEVICE_CONDITIONS, type Customer, type Device, type DeviceCondition } from "@/lib/store";
+import { PageHeader, Block, Btn, Drawer, Modal, Field, inputCls, Badge, Empty, RowActions } from "@/components/brutalist";
 import { Plus, Search, Smartphone, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/app/customers")({
