@@ -105,6 +105,7 @@ function StaffPage() {
                 <th className="p-3 hidden lg:table-cell">Contact</th>
                 <th className="p-3 hidden md:table-cell">Joined</th>
                 <th className="p-3 text-right">Salary</th>
+                <th className="p-3 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -118,6 +119,7 @@ function StaffPage() {
                   <td className="p-3 hidden lg:table-cell font-mono text-xs">{s.phone}<br/><span className="opacity-60">IC {s.ic}</span></td>
                   <td className="p-3 hidden md:table-cell font-mono text-xs">{s.joinedAt}</td>
                   <td className="p-3 text-right font-display text-lg">RM{s.salary.toLocaleString()}</td>
+                  <td className="p-3 text-right"><RowActions onEdit={() => openEdit(s)} onDelete={() => { update("staff", prev => prev.filter(x => x.id !== s.id)); toast.success("STAFF REMOVED"); }} /></td>
                 </tr>
               ))}
             </tbody>
