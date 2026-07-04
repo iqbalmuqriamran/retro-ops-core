@@ -162,10 +162,13 @@ function InventoryPage() {
             <Field label="Unit Price"><input type="number" className={inputCls} value={pf.price} onChange={e => setPf({ ...pf, price: Number(e.target.value) })} /></Field>
           </div>
           <Field label="Supplier">
-            <select className={inputCls} value={pf.supplierId} onChange={e => setPf({ ...pf, supplierId: e.target.value })}>
-              <option value="">— none —</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <Combobox
+              value={pf.supplierId}
+              onChange={v => setPf({ ...pf, supplierId: v })}
+              options={suppliers.map(s => ({ id: s.id, label: s.name, meta: s.contact }))}
+              placeholder="SEARCH SUPPLIER"
+              allowClear
+            />
           </Field>
           <div className="flex justify-between items-center pt-2">
             {editingPart ? <Btn variant="dark" onClick={deletePart}>Delete</Btn> : <span />}
