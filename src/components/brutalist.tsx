@@ -138,3 +138,108 @@ export function Badge({ tone = "ink", children }: { tone?: "ink" | "red" | "yell
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="brutal-border bg-card p-10 text-center font-mono text-sm uppercase tracking-widest text-muted-foreground">▢ {children}</div>;
 }
+
+/* ---------- Combobox (autocomplete) ---------- */
+export function Combobox({
+  value, onChange, options, placeholder = "SELECT", allowClear = false, disabled = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { id: string; label: string; meta?: string }[];
+  placeholder?: string; allowClear?: boolean; disabled?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = options.find(o => o.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener("mousedown", h);
+    return () => window.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const s = q.toLowerCase().trim();
+  const filtered = s
+    ? options.filter(o => o.label.toLowerCase().includes(s) || (o.meta ?? "").toLowerCase().includes(s))
+    : options;
+
+  const displayVal = open ? q : (selected ? `${selected.label}${selected.meta ? ` · ${selected.meta}` : ""}` : "");
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        disabled={disabled}
+        className={inputCls}
+        value={displayVal}
+        placeholder={placeholder}
+        onFocus={() => { setOpen(true); setQ(""); }}
+        onChange={e => { setQ(e.target.value); if (!open) setOpen(true); }}
+      />
+      {open && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 brutal-border bg-cream max-h-60 overflow-y-auto brutal-shadow-sm">
+          {allowClear && (
+            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { onChange(""); setOpen(false); setQ(""); }}
+              className="block w-full text-left px-3 py-2 font-mono text-[11px] uppercase hover:bg-primary hover:text-primary-foreground border-b-2 border-ink">
+              — none —
+            </button>
+          )}
+          {filtered.length === 0 ? (
+            <div className="px-3 py-3 font-mono text-[11px] uppercase text-muted-foreground">▢ No matches</div>
+          ) : filtered.map(o => (
+            <button type="button" key={o.id}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { onChange(o.id); setOpen(false); setQ(""); }}
+              className={`block w-full text-left px-3 py-2 hover:bg-accent border-b border-ink/20 ${o.id === value ? "bg-ink text-cream" : ""}`}>
+              <div className="font-display uppercase text-[11px] leading-tight">{o.label}</div>
+              {o.meta && <div className="font-mono text-[10px] opacity-70 mt-0.5">{o.meta}</div>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Row Actions (⋮ Edit/Delete) ---------- */
+export function RowActions({ onEdit, onDelete, className = "" }: {
+  onEdit?: () => void; onDelete?: () => void; className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener("mousedown", h);
+    return () => window.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div ref={ref} className={`relative inline-block ${className}`} onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-label="Row actions"
+        className="brutal-border bg-cream w-8 h-8 grid place-items-center hover:bg-accent"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 brutal-border brutal-shadow-sm bg-cream min-w-[140px]">
+          {onEdit && (
+            <button type="button" onClick={() => { setOpen(false); onEdit(); }}
+              className="block w-full text-left px-3 py-2 font-display uppercase text-[11px] hover:bg-accent border-b-2 border-ink">
+              ✎ Edit
+            </button>
+          )}
+          {onDelete && (
+            <button type="button" onClick={() => { setOpen(false); onDelete(); }}
+              className="block w-full text-left px-3 py-2 font-display uppercase text-[11px] hover:bg-primary hover:text-primary-foreground">
+              ✕ Delete
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
