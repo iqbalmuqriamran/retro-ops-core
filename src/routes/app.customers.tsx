@@ -118,7 +118,7 @@ function CustomersPage() {
         <table className="w-full">
           <thead className="bg-ink text-cream">
             <tr className="text-left font-display text-[11px] uppercase tracking-widest">
-              <th className="p-3">#</th><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3 hidden md:table-cell">Email</th><th className="p-3 hidden lg:table-cell">Joined</th><th className="p-3 text-right">Devices</th>
+              <th className="p-3">#</th><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3 hidden md:table-cell">Email</th><th className="p-3 hidden lg:table-cell">Joined</th><th className="p-3 text-right">Devices</th><th className="p-3 text-right w-10"></th>
             </tr>
           </thead>
           <tbody>
@@ -132,6 +132,7 @@ function CustomersPage() {
                   <td className="p-3 font-mono text-xs hidden md:table-cell">{c.email}</td>
                   <td className="p-3 font-mono text-xs hidden lg:table-cell">{c.createdAt}</td>
                   <td className="p-3 text-right"><Badge tone={count ? "red" : "muted"}>{count} DEV</Badge></td>
+                  <td className="p-3 text-right"><RowActions onEdit={() => openEditCustomer(c)} onDelete={() => deleteCustomer(c)} /></td>
                 </tr>
               );
             })}
