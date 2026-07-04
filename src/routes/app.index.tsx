@@ -134,6 +134,60 @@ function Dashboard() {
           </ul>
         </Block>
       </div>
+
+      <Modal open={chartOpen === "bar"} onClose={() => setChartOpen(null)} title="Monthly Repairs · Detail Breakdown" width={720}>
+        <div className="space-y-4">
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={MONTHLY}>
+              <XAxis dataKey="m" tick={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 11 }} axisLine={{ stroke: "var(--ink)", strokeWidth: 2 }} tickLine={false} />
+              <YAxis tick={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 11 }} axisLine={{ stroke: "var(--ink)", strokeWidth: 2 }} tickLine={false} />
+              <Tooltip contentStyle={{ background: "var(--ink)", color: "var(--cream)", border: "2px solid var(--blood)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase" }} />
+              <Bar dataKey="v">
+                {MONTHLY.map((_, i) => <Cell key={i} fill={i === MONTHLY.length - 1 ? "var(--blood)" : "var(--ink)"} stroke="var(--ink)" strokeWidth={2} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-3 gap-2">
+            {MONTHLY.map(m => (
+              <div key={m.m} className="brutal-border bg-background p-3 text-center">
+                <div className="font-mono text-[10px] uppercase opacity-70">{m.m}</div>
+                <div className="font-display text-2xl">{m.v}</div>
+                <div className="font-mono text-[10px] uppercase opacity-70">repairs</div>
+              </div>
+            ))}
+          </div>
+          <div className="brutal-border p-3 bg-ink text-cream font-mono text-xs uppercase">
+            ▶ YTD Total: {MONTHLY.reduce((s, m) => s + m.v, 0)} repairs · Peak: {MONTHLY.reduce((a, b) => a.v > b.v ? a : b).m} ({Math.max(...MONTHLY.map(m => m.v))})
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={chartOpen === "pie"} onClose={() => setChartOpen(null)} title="Revenue Breakdown · Detail" width={640}>
+        <div className="space-y-4">
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={revenueByService} dataKey="v" nameKey="name" innerRadius={60} outerRadius={110} stroke="var(--ink)" strokeWidth={2} label>
+                {revenueByService.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: "var(--ink)", color: "var(--cream)", border: "2px solid var(--blood)", fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="space-y-2">
+            {revenueByService.map((r, i) => {
+              const total = revenueByService.reduce((s, x) => s + x.v, 0) || 1;
+              const pct = Math.round((r.v / total) * 100);
+              return (
+                <div key={r.name} className="brutal-border p-3 grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center">
+                  <span className="w-4 h-4 border-2 border-ink" style={{ background: COLORS[i % COLORS.length] }} />
+                  <span className="font-display uppercase text-sm">{r.name}</span>
+                  <Badge tone="ink">{pct}%</Badge>
+                  <span className="font-display text-lg">RM{r.v}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
