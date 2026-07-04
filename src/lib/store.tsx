@@ -27,9 +27,10 @@ export interface Ticket {
   status: "Open" | "Diagnosing" | "Approved" | "Completed";
   createdAt: string; assignedTo?: string;
 }
+export interface JobPartLine { partId: string; qty: number; }
 export interface Job {
   id: string; ticketId: string; diagnosis: string; actions: string[];
-  assignedTo: string; laborCost: number; partIds: string[]; serviceIds: string[];
+  assignedTo: string; serviceId: string; partLines: JobPartLine[];
   status: "In Progress" | "Awaiting Parts" | "Completed";
 }
 export interface Part { id: string; name: string; sku: string; stock: number; lowStock: number; price: number; compatibility: string; supplierId: string; }
@@ -63,8 +64,8 @@ const seedTickets: Ticket[] = [
   { id: "t4", customerId: "c1", deviceId: "d4", issue: "Charging port repair", priority: "Normal", status: "Open", createdAt: "2025-06-24" },
 ];
 const seedJobs: Job[] = [
-  { id: "j1", ticketId: "t1", diagnosis: "LCD assembly cracked, digitizer non-responsive.", actions: ["Disassembled device", "Ordered OEM screen"], assignedTo: "u4", laborCost: 80, partIds: ["p1"], serviceIds: ["s1"], status: "In Progress" },
-  { id: "j2", ticketId: "t2", diagnosis: "Battery health 62%. Recommend replacement.", actions: ["Battery diagnostic complete"], assignedTo: "u4", laborCost: 50, partIds: ["p2"], serviceIds: ["s2"], status: "Awaiting Parts" },
+  { id: "j1", ticketId: "t1", diagnosis: "LCD assembly cracked, digitizer non-responsive.", actions: ["Disassembled device", "Ordered OEM screen"], assignedTo: "u4", serviceId: "s1", partLines: [{ partId: "p1", qty: 1 }], status: "In Progress" },
+  { id: "j2", ticketId: "t2", diagnosis: "Battery health 62%. Recommend replacement.", actions: ["Battery diagnostic complete"], assignedTo: "u4", serviceId: "s2", partLines: [{ partId: "p2", qty: 1 }], status: "Awaiting Parts" },
 ];
 const seedParts: Part[] = [
   { id: "p1", name: "iPhone 13 Pro OLED", sku: "IP13P-SCR", stock: 4, lowStock: 5, price: 420, compatibility: "iPhone 13 Pro", supplierId: "sp1" },
@@ -116,8 +117,24 @@ interface Store extends DataState {
 }
 
 const Ctx = createContext<Store | null>(null);
-const LS_KEY = "gw666_data_v2";
+const LS_KEY = "gw666_data_v3";
 const LS_USER = "gw666_user_v1";
+
+function migrate(parsed: any): DataState {
+  if (!parsed.staff) parsed.staff = seedStaff;
+  if (Array.isArray(parsed.jobs)) {
+    parsed.jobs = parsed.jobs.map((j: any) => {
+      if (j.partLines && j.serviceId !== undefined) return j;
+      const partLines = Array.isArray(j.partLines)
+        ? j.partLines
+        : (j.partIds ?? []).map((id: string) => ({ partId: id, qty: 1 }));
+      const serviceId = j.serviceId ?? (j.serviceIds?.[0] ?? "");
+      const { partIds: _a, serviceIds: _b, laborCost: _c, ...rest } = j;
+      return { ...rest, partLines, serviceId };
+    });
+  }
+  return parsed as DataState;
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DataState>(() => {
@@ -125,10 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) return SEED;
-      const parsed = JSON.parse(raw);
-      // ensure staff present if user upgrading
-      if (!parsed.staff) parsed.staff = seedStaff;
-      return parsed;
+      return migrate(JSON.parse(raw));
     } catch { return SEED; }
   });
   const [user, setUser] = useState<User | null>(() => {

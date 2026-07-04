@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useStore, uid, DEVICE_CONDITIONS, type Device, type DeviceCondition } from "@/lib/store";
-import { PageHeader, Block, Btn, Drawer, Modal, Field, inputCls, Badge, Empty } from "@/components/brutalist";
+import { useStore, uid, DEVICE_CONDITIONS, type Customer, type Device, type DeviceCondition } from "@/lib/store";
+import { PageHeader, Block, Btn, Drawer, Modal, Field, inputCls, Badge, Empty, RowActions } from "@/components/brutalist";
 import { Plus, Search, Smartphone, Pencil } from "lucide-react";
 
 export const Route = createFileRoute("/app/customers")({
@@ -17,11 +17,11 @@ function CustomersPage() {
   const [q, setQ] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deviceModal, setDeviceModal] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
   const [deviceForm, setDeviceForm] = useState<DeviceForm>(blankDevice);
-  // customer id that just got created – used to target the auto-linked device
   const [linkTarget, setLinkTarget] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -35,14 +35,33 @@ function CustomersPage() {
   const selected = customers.find(c => c.id === selectedId);
   const selectedDevices = devices.filter(d => d.customerId === selectedId);
 
+  const openNew = () => { setEditingCustomer(null); setForm({ name: "", phone: "", email: "", address: "" }); setModalOpen(true); };
+  const openEditCustomer = (c: Customer) => {
+    setEditingCustomer(c);
+    setForm({ name: c.name, phone: c.phone, email: c.email, address: c.address });
+    setModalOpen(true);
+  };
+  const deleteCustomer = (c: Customer) => {
+    update("customers", prev => prev.filter(x => x.id !== c.id));
+    update("devices", prev => prev.filter(d => d.customerId !== c.id));
+    toast.success(`CUSTOMER ${c.name.toUpperCase()} REMOVED`);
+  };
+
   const submitCustomer = () => {
     if (!form.name.trim() || !form.phone.trim()) { toast.error("NAME + PHONE REQUIRED"); return; }
+    if (editingCustomer) {
+      update("customers", prev => prev.map(c => c.id === editingCustomer.id ? { ...c, ...form } : c));
+      toast.success("CUSTOMER UPDATED");
+      setEditingCustomer(null);
+      setForm({ name: "", phone: "", email: "", address: "" });
+      setModalOpen(false);
+      return;
+    }
     const newId = uid("c");
     update("customers", prev => [...prev, { id: newId, ...form, createdAt: new Date().toISOString().slice(0, 10) }]);
     toast.success("CUSTOMER REGISTERED // LINK DEVICE");
     setForm({ name: "", phone: "", email: "", address: "" });
     setModalOpen(false);
-    // Immediately prompt link device for this new customer
     setLinkTarget(newId);
     setEditingDevice(null);
     setDeviceForm(blankDevice);
@@ -86,7 +105,7 @@ function CustomersPage() {
       <PageHeader
         eyebrow="Sector 02 · CRM"
         title="Customers & Devices"
-        action={<Btn variant="primary" onClick={() => setModalOpen(true)}><Plus className="inline w-4 h-4 mr-1" /> New Customer</Btn>}
+        action={<Btn variant="primary" onClick={openNew}><Plus className="inline w-4 h-4 mr-1" /> New Customer</Btn>}
       />
 
       <Block className="p-3 mb-4 brutal-shadow-sm flex items-center gap-2">
@@ -99,7 +118,7 @@ function CustomersPage() {
         <table className="w-full">
           <thead className="bg-ink text-cream">
             <tr className="text-left font-display text-[11px] uppercase tracking-widest">
-              <th className="p-3">#</th><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3 hidden md:table-cell">Email</th><th className="p-3 hidden lg:table-cell">Joined</th><th className="p-3 text-right">Devices</th>
+              <th className="p-3">#</th><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3 hidden md:table-cell">Email</th><th className="p-3 hidden lg:table-cell">Joined</th><th className="p-3 text-right">Devices</th><th className="p-3 text-right w-10"></th>
             </tr>
           </thead>
           <tbody>
@@ -113,6 +132,7 @@ function CustomersPage() {
                   <td className="p-3 font-mono text-xs hidden md:table-cell">{c.email}</td>
                   <td className="p-3 font-mono text-xs hidden lg:table-cell">{c.createdAt}</td>
                   <td className="p-3 text-right"><Badge tone={count ? "red" : "muted"}>{count} DEV</Badge></td>
+                  <td className="p-3 text-right"><RowActions onEdit={() => openEditCustomer(c)} onDelete={() => deleteCustomer(c)} /></td>
                 </tr>
               );
             })}
@@ -170,7 +190,7 @@ function CustomersPage() {
       </Drawer>
 
       {/* New customer modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Customer Intake">
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setEditingCustomer(null); }} title={editingCustomer ? `Edit · ${editingCustomer.name}` : "New Customer Intake"}>
         <div className="space-y-3">
           <Field label="Full Name"><input className={inputCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
@@ -178,8 +198,11 @@ function CustomersPage() {
             <Field label="Email"><input className={inputCls} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></Field>
           </div>
           <Field label="Address"><input className={inputCls} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></Field>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">▶ Device intake will open immediately after registration.</p>
-          <div className="flex justify-end gap-2 pt-2"><Btn variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={submitCustomer}>Register & Link Device</Btn></div>
+          {!editingCustomer && <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">▶ Device intake will open immediately after registration.</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <Btn variant="ghost" onClick={() => { setModalOpen(false); setEditingCustomer(null); }}>Cancel</Btn>
+            <Btn variant="primary" onClick={submitCustomer}>{editingCustomer ? "Save Changes" : "Register & Link Device"}</Btn>
+          </div>
         </div>
       </Modal>
 

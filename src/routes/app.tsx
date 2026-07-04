@@ -18,9 +18,9 @@ const NAV: NavItem[] = [
   { to: "/app/customers", label: "Customers", icon: Users },
   { to: "/app/tickets", label: "Tickets", icon: TicketIcon },
   { to: "/app/workshop", label: "Workshop", icon: Wrench },
+  { to: "/app/finance", label: "Finance", icon: Receipt },
   { to: "/app/inventory", label: "Inventory", icon: Package },
   { to: "/app/services", label: "Services", icon: BookOpen },
-  { to: "/app/finance", label: "Finance", icon: Receipt },
   { to: "/app/staff", label: "Staff", icon: UserCog, ownerOnly: true },
 ];
 

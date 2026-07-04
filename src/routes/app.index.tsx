@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
-import { PageHeader, Block, Badge } from "@/components/brutalist";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
-import { Activity, AlertTriangle, Wallet, TicketIcon as TI } from "lucide-react";
+import { PageHeader, Block, Badge, Modal } from "@/components/brutalist";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, PieChart, Pie, Tooltip } from "recharts";
+import { Activity, AlertTriangle, Wallet, TicketIcon as TI, Maximize2 } from "lucide-react";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -16,6 +16,7 @@ const MONTHLY = [
 
 function Dashboard() {
   const { tickets, jobs, parts, invoices, services } = useStore();
+  const [chartOpen, setChartOpen] = useState<null | "bar" | "pie">(null);
   const navigate = useNavigate();
   const activeJobs = jobs.filter(j => j.status !== "Completed").length;
   const pending = tickets.filter(t => t.status === "Open" || t.status === "Diagnosing").length;
@@ -61,13 +62,16 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Block className="lg:col-span-2 p-5 brutal-shadow-sm">
+        <Block onClick={() => setChartOpen("bar")} className="lg:col-span-2 p-5 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 01</p>
               <h3 className="font-display text-xl uppercase">Monthly Repairs</h3>
             </div>
-            <Badge tone="red">YTD</Badge>
+            <div className="flex items-center gap-2">
+              <Badge tone="red">YTD</Badge>
+              <Maximize2 className="w-4 h-4 opacity-60" />
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={MONTHLY}>
@@ -78,11 +82,17 @@ function Dashboard() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          <div className="mt-2 font-mono text-[10px] uppercase tracking-widest opacity-70">▶ Click chart for detail breakdown</div>
         </Block>
 
-        <Block className="p-5 brutal-shadow-sm">
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 02</p>
-          <h3 className="font-display text-xl uppercase mb-2">Revenue Breakdown</h3>
+        <Block onClick={() => setChartOpen("pie")} className="p-5 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Series 02</p>
+              <h3 className="font-display text-xl uppercase mb-2">Revenue Breakdown</h3>
+            </div>
+            <Maximize2 className="w-4 h-4 opacity-60" />
+          </div>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={revenueByService} dataKey="v" nameKey="name" innerRadius={40} outerRadius={80} stroke="var(--ink)" strokeWidth={2}>
@@ -124,6 +134,60 @@ function Dashboard() {
           </ul>
         </Block>
       </div>
+
+      <Modal open={chartOpen === "bar"} onClose={() => setChartOpen(null)} title="Monthly Repairs · Detail Breakdown" width={720}>
+        <div className="space-y-4">
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={MONTHLY}>
+              <XAxis dataKey="m" tick={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 11 }} axisLine={{ stroke: "var(--ink)", strokeWidth: 2 }} tickLine={false} />
+              <YAxis tick={{ fill: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 11 }} axisLine={{ stroke: "var(--ink)", strokeWidth: 2 }} tickLine={false} />
+              <Tooltip contentStyle={{ background: "var(--ink)", color: "var(--cream)", border: "2px solid var(--blood)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase" }} />
+              <Bar dataKey="v">
+                {MONTHLY.map((_, i) => <Cell key={i} fill={i === MONTHLY.length - 1 ? "var(--blood)" : "var(--ink)"} stroke="var(--ink)" strokeWidth={2} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-3 gap-2">
+            {MONTHLY.map(m => (
+              <div key={m.m} className="brutal-border bg-background p-3 text-center">
+                <div className="font-mono text-[10px] uppercase opacity-70">{m.m}</div>
+                <div className="font-display text-2xl">{m.v}</div>
+                <div className="font-mono text-[10px] uppercase opacity-70">repairs</div>
+              </div>
+            ))}
+          </div>
+          <div className="brutal-border p-3 bg-ink text-cream font-mono text-xs uppercase">
+            ▶ YTD Total: {MONTHLY.reduce((s, m) => s + m.v, 0)} repairs · Peak: {MONTHLY.reduce((a, b) => a.v > b.v ? a : b).m} ({Math.max(...MONTHLY.map(m => m.v))})
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={chartOpen === "pie"} onClose={() => setChartOpen(null)} title="Revenue Breakdown · Detail" width={640}>
+        <div className="space-y-4">
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={revenueByService} dataKey="v" nameKey="name" innerRadius={60} outerRadius={110} stroke="var(--ink)" strokeWidth={2} label>
+                {revenueByService.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip contentStyle={{ background: "var(--ink)", color: "var(--cream)", border: "2px solid var(--blood)", fontFamily: "var(--font-mono)", fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="space-y-2">
+            {revenueByService.map((r, i) => {
+              const total = revenueByService.reduce((s, x) => s + x.v, 0) || 1;
+              const pct = Math.round((r.v / total) * 100);
+              return (
+                <div key={r.name} className="brutal-border p-3 grid grid-cols-[auto_1fr_auto_auto] gap-3 items-center">
+                  <span className="w-4 h-4 border-2 border-ink" style={{ background: COLORS[i % COLORS.length] }} />
+                  <span className="font-display uppercase text-sm">{r.name}</span>
+                  <Badge tone="ink">{pct}%</Badge>
+                  <span className="font-display text-lg">RM{r.v}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
