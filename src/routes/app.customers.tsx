@@ -105,7 +105,7 @@ function CustomersPage() {
       <PageHeader
         eyebrow="Sector 02 · CRM"
         title="Customers & Devices"
-        action={<Btn variant="primary" onClick={() => setModalOpen(true)}><Plus className="inline w-4 h-4 mr-1" /> New Customer</Btn>}
+        action={<Btn variant="primary" onClick={openNew}><Plus className="inline w-4 h-4 mr-1" /> New Customer</Btn>}
       />
 
       <Block className="p-3 mb-4 brutal-shadow-sm flex items-center gap-2">
