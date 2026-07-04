@@ -190,7 +190,7 @@ function CustomersPage() {
       </Drawer>
 
       {/* New customer modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Customer Intake">
+      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setEditingCustomer(null); }} title={editingCustomer ? `Edit · ${editingCustomer.name}` : "New Customer Intake"}>
         <div className="space-y-3">
           <Field label="Full Name"><input className={inputCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
           <div className="grid grid-cols-2 gap-3">
@@ -198,8 +198,11 @@ function CustomersPage() {
             <Field label="Email"><input className={inputCls} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></Field>
           </div>
           <Field label="Address"><input className={inputCls} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></Field>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">▶ Device intake will open immediately after registration.</p>
-          <div className="flex justify-end gap-2 pt-2"><Btn variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Btn><Btn variant="primary" onClick={submitCustomer}>Register & Link Device</Btn></div>
+          {!editingCustomer && <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">▶ Device intake will open immediately after registration.</p>}
+          <div className="flex justify-end gap-2 pt-2">
+            <Btn variant="ghost" onClick={() => { setModalOpen(false); setEditingCustomer(null); }}>Cancel</Btn>
+            <Btn variant="primary" onClick={submitCustomer}>{editingCustomer ? "Save Changes" : "Register & Link Device"}</Btn>
+          </div>
         </div>
       </Modal>
 
