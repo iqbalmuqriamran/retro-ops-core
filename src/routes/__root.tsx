@@ -87,7 +87,7 @@ function RootComponent() {
       <StoreProvider>
         <Outlet />
         <Toaster
-          position="top-right"
+          position="top-center"
           toastOptions={{
             style: {
               border: "3px solid var(--ink)",

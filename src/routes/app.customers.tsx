@@ -446,8 +446,18 @@ function CustomersPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Phone">
-              <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </Field>
+            <input
+              className={inputCls}
+              value={form.phone}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, ""); // strip non-digits
+                const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3, 11)}` : digits;
+                setForm({ ...form, phone: formatted });
+              }}
+              placeholder="012-3456789"
+              maxLength={12}
+            />
+          </Field>
             <Field label="Email">
               <input className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             </Field>
