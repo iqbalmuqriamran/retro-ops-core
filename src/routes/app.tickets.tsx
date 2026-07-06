@@ -62,22 +62,19 @@ function TicketsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    const s = q.toLowerCase();
-    return tickets
-      .filter((t) => {
-        const cus = customers.find((c) => c.CUST_ID === t.CUST_ID);
-        const cusName = cus ? `${cus.CUST_FNAME} ${cus.CUST_LNAME}` : "";
-        return (
-          (status === "all" || t.TICKET_STATUS === status) &&
-          (!s ||
-            t.TICKET_ISSUE.toLowerCase().includes(s) ||
-            t.TICKET_ID.toLowerCase().includes(s) ||
-            cusName.toLowerCase().includes(s))
-        );
-      })
-      .slice()
-      .sort((a, b) => (b.TICKET_DATE ?? "").localeCompare(a.TICKET_DATE ?? ""));
-  }, [tickets, q, status, customers]);
+  const s = q.toLowerCase();
+  return tickets.filter((t) => {
+    const cus = customers.find((c) => c.CUST_ID === t.CUST_ID);
+    const cusName = cus ? `${cus.CUST_FNAME} ${cus.CUST_LNAME}` : "";
+    return (
+      (status === "all" || t.TICKET_STATUS === status) &&
+      (!s ||
+        t.TICKET_ISSUE.toLowerCase().includes(s) ||
+        t.TICKET_ID.toLowerCase().includes(s) ||
+        cusName.toLowerCase().includes(s))
+    );
+  });
+}, [tickets, q, status, customers]);
 
   const cusDevices = devices.filter((d) => d.CUST_ID === form.customerId);
 

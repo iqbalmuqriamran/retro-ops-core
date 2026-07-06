@@ -29,9 +29,9 @@ function Dashboard() {
   }, []);
 
   const latestTickets = useMemo(
-    () => tickets.slice().sort((a, b) => (b.TICKET_DATE ?? "").localeCompare(a.TICKET_DATE ?? "")).slice(0, 5),
-    [tickets]
-  );
+  () => tickets.slice().sort((a, b) => new Date(b.TICKET_DATE ?? 0).getTime() - new Date(a.TICKET_DATE ?? 0).getTime()).slice(0, 5),
+  [tickets]
+);
 
   const monthlyRevenue = stats?.monthlyRevenue ?? [];
   const serviceBreakdown = stats?.serviceBreakdown ?? [];

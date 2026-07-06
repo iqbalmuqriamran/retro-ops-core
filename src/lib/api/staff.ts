@@ -24,10 +24,10 @@ export interface StaffRow {
 export const STAFF_ROLES = ["Owner", "Branch Manager", "Technician", "Senior Staff", "Cashier"] as const;
 export const STAFF_STATUSES = ["Active", "Inactive", "Resigned", "On Leave"] as const;
 
-const API = "http://localhost/gadgetworld-api/staff.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchStaff(): Promise<StaffRow[]> {
-  const res = await fetch(API);
+  const res = await fetch(`${API_BASE}/staff.php`);
   if (!res.ok) throw new Error("Failed to fetch staff");
   return res.json();
 }
@@ -54,21 +54,21 @@ export interface StaffPayload {
 }
 
 export async function createStaff(payload: StaffPayload) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+  const res = await fetch(`${API_BASE}/staff.php`, { method: "POST", body: JSON.stringify(payload) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to create staff");
   return data as { success: true; STAFF_ID: string };
 }
 
 export async function updateStaff(id: string, payload: StaffPayload & { status: string }) {
-  const res = await fetch(API, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
+  const res = await fetch(`${API_BASE}/staff.php`, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to update staff");
   return data;
 }
 
 export async function deleteStaffApi(id: string) {
-  const res = await fetch(`${API}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/staff.php?id=${encodeURIComponent(id)}`, { method: "DELETE" });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to delete staff");
   return data;

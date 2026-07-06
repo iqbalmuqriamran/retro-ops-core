@@ -11,6 +11,7 @@ import {
   fetchSuppliers,
   createSupplier,
   updateSupplier,
+  deleteSupplierApi,
   PART_CATEGORIES,
   SUPPLIER_STATUSES,
   type PartRow,
@@ -44,6 +45,7 @@ const blankSupplier: SupplierPayload = {
   city: "",
   postcode: "",
   state: "",
+  status: SUPPLIER_STATUSES[0],
   notes: "",
 };
 
@@ -57,6 +59,7 @@ function InventoryPage() {
   const [partOpen, setPartOpen] = useState(false);
   const [supOpen, setSupOpen] = useState(false);
   const [editingPart, setEditingPart] = useState<PartRow | null>(null);
+  const [editingSup, setEditingSup] = useState<SupplierRow | null>(null);
   const [pf, setPf] = useState<PartPayload>(blankPart);
   const [sf, setSf] = useState<SupplierPayload>(blankSupplier);
 
@@ -75,9 +78,10 @@ function InventoryPage() {
     loadAll();
   }, []);
 
-  const filteredParts = useMemo(
-    () =>
-      parts.filter((p) => {
+const filteredParts = useMemo(
+  () =>
+    parts
+      .filter((p) => {
         const s = q.toLowerCase();
         return (
           !s ||
@@ -85,18 +89,23 @@ function InventoryPage() {
           p.PART_ID.toLowerCase().includes(s) ||
           (p.PART_COMPATIBLEDEVICE ?? "").toLowerCase().includes(s)
         );
-      }),
-    [parts, q]
-  );
+      })
+      .slice()
+      .sort((a, b) => b.PART_ID.localeCompare(a.PART_ID)),
+  [parts, q]
+);
 
-  const filteredSups = useMemo(
-    () =>
-      suppliers.filter((s) => {
+const filteredSups = useMemo(
+  () =>
+    suppliers
+      .filter((s) => {
         const v = q.toLowerCase();
         return !v || s.SUPPLIER_NAME.toLowerCase().includes(v) || (s.SUPPLIER_CONTACTPERSONFNAME ?? "").toLowerCase().includes(v);
-      }),
-    [suppliers, q]
-  );
+      })
+      .slice()
+      .sort((a, b) => b.SUPPLIER_ID.localeCompare(a.SUPPLIER_ID)),
+  [suppliers, q]
+);
 
   const openAddPart = () => {
     setEditingPart(null);
@@ -122,6 +131,10 @@ function InventoryPage() {
   const submitPart = async () => {
     if (!pf.name.trim() || !pf.supplier_id) {
       toast.error("NAME + SUPPLIER REQUIRED");
+      return;
+    }
+    if (pf.stock < 0 || pf.price < 0) {
+      toast.error("STOCK + PRICE MUST BE 0 OR MORE");
       return;
     }
     try {
@@ -164,19 +177,78 @@ function InventoryPage() {
     }
   };
 
+  const openAddSup = () => {
+    setEditingSup(null);
+    setSf(blankSupplier);
+    setSupOpen(true);
+  };
+
+  const openEditSup = (s: SupplierRow) => {
+    setEditingSup(s);
+    setSf({
+      name: s.SUPPLIER_NAME,
+      fname: s.SUPPLIER_CONTACTPERSONFNAME ?? "",
+      lname: s.SUPPLIER_CONTACTPERSONLNAME ?? "",
+      phone: s.SUPPLIER_PHONENUMBER,
+      email: s.SUPPLIER_EMAIL ?? "",
+      address: s.SUPPLIER_ADDRESS ?? "",
+      city: s.SUPPLIER_CITY ?? "",
+      postcode: s.SUPPLIER_POSTCODE ?? "",
+      state: s.SUPPLIER_STATE ?? "",
+      status: s.SUPPLIER_STATUS,
+      notes: s.SUPPLIER_NOTES ?? "",
+    });
+    setSupOpen(true);
+  };
+
   const submitSup = async () => {
-    if (!sf.name.trim() || !sf.phone.trim()) {
-      toast.error("SUPPLIER NAME + PHONE REQUIRED");
+    const errors: string[] = [];
+    if (!sf.name.trim()) {
+      errors.push("Supplier name is required");
+    } else if (!/[a-zA-Z]/.test(sf.name.trim())) {
+      errors.push("Supplier name must contain letters");
+    }
+
+    if (!sf.phone.trim()) {
+      errors.push("Phone is required");
+    }
+
+    if (sf.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sf.email.trim())) {
+      errors.push("Invalid email format");
+    }
+
+    if (errors.length > 0) {
+      toast.error(errors.join(". "));
       return;
     }
+
     try {
-      await createSupplier(sf);
-      toast.success("SUPPLIER REGISTERED");
+      if (editingSup) {
+        await updateSupplier(editingSup.SUPPLIER_ID, sf);
+        toast.success("SUPPLIER UPDATED");
+      } else {
+        await createSupplier(sf);
+        toast.success("SUPPLIER REGISTERED");
+      }
       setSf(blankSupplier);
+      setEditingSup(null);
       setSupOpen(false);
       loadAll();
     } catch (err: any) {
       toast.error(err.message ?? "Failed to save supplier");
+    }
+  };
+
+  const deleteSup = async () => {
+    if (!editingSup) return;
+    try {
+      await deleteSupplierApi(editingSup.SUPPLIER_ID);
+      toast.success("SUPPLIER REMOVED");
+      setEditingSup(null);
+      setSupOpen(false);
+      loadAll();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete supplier");
     }
   };
 
@@ -194,7 +266,18 @@ function InventoryPage() {
         price: p.PART_UNITPRICE,
         notes: p.PART_NOTES ?? "",
       });
-      loadAll();
+      // update local state directly instead of refetching everything
+      setParts((prev) =>
+        prev.map((row) =>
+          row.PART_ID === p.PART_ID
+            ? {
+                ...row,
+                PART_STOCK: newStock,
+                PART_STATUS: newStock <= 0 ? "Out of Stock" : newStock <= 5 ? "Low Stock" : "Available",
+              }
+            : row
+        )
+      );
     } catch (err: any) {
       toast.error(err.message ?? "Failed to adjust stock");
     }
@@ -211,7 +294,7 @@ function InventoryPage() {
               <Plus className="inline w-4 h-4 mr-1" /> Add Part
             </Btn>
           ) : (
-            <Btn variant="primary" onClick={() => setSupOpen(true)}>
+            <Btn variant="primary" onClick={openAddSup}>
               <Plus className="inline w-4 h-4 mr-1" /> Add Supplier
             </Btn>
           )
@@ -300,7 +383,11 @@ function InventoryPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredSups.map((s) => (
-            <Block key={s.SUPPLIER_ID} className="p-4 brutal-shadow-sm">
+            <Block
+              key={s.SUPPLIER_ID}
+              onClick={() => openEditSup(s)}
+              className="p-4 brutal-shadow-sm cursor-pointer hover:translate-x-[-2px] hover:translate-y-[-2px] transition-transform"
+            >
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 grid place-items-center bg-ink text-cream">
                   <Truck className="w-5 h-5" />
@@ -397,12 +484,27 @@ function InventoryPage() {
         </div>
       </Modal>
 
-      {/* Add supplier modal */}
-      <Modal open={supOpen} onClose={() => setSupOpen(false)} title="Add Supplier">
+      {/* Add/edit supplier modal */}
+      <Modal
+        open={supOpen}
+        onClose={() => setSupOpen(false)}
+        title={editingSup ? `Edit Supplier · ${editingSup.SUPPLIER_ID}` : "Add Supplier"}
+      >
         <div className="space-y-3">
-          <Field label="Company Name">
-            <input className={inputCls} value={sf.name} onChange={(e) => setSf({ ...sf, name: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Company Name">
+              <input className={inputCls} value={sf.name} onChange={(e) => setSf({ ...sf, name: e.target.value })} />
+            </Field>
+            <Field label="Status">
+              <select className={inputCls} value={sf.status} onChange={(e) => setSf({ ...sf, status: e.target.value })}>
+                {SUPPLIER_STATUSES.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Contact First Name">
               <input className={inputCls} value={sf.fname} onChange={(e) => setSf({ ...sf, fname: e.target.value })} />
@@ -413,7 +515,17 @@ function InventoryPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Phone">
-              <input className={inputCls} value={sf.phone} onChange={(e) => setSf({ ...sf, phone: e.target.value })} />
+              <input
+                className={inputCls}
+                value={sf.phone}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3, 11)}` : digits;
+                  setSf({ ...sf, phone: formatted });
+                }}
+                placeholder="012-3456789"
+                maxLength={12}
+              />
             </Field>
             <Field label="Email">
               <input className={inputCls} value={sf.email} onChange={(e) => setSf({ ...sf, email: e.target.value })} />
@@ -436,13 +548,22 @@ function InventoryPage() {
           <Field label="Notes">
             <input className={inputCls} value={sf.notes} onChange={(e) => setSf({ ...sf, notes: e.target.value })} />
           </Field>
-          <div className="flex justify-end gap-2 pt-2">
-            <Btn variant="ghost" onClick={() => setSupOpen(false)}>
-              Cancel
-            </Btn>
-            <Btn variant="primary" onClick={submitSup}>
-              Save Supplier
-            </Btn>
+          <div className="flex justify-between items-center pt-2">
+            {editingSup ? (
+              <Btn variant="dark" onClick={deleteSup}>
+                Delete
+              </Btn>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Btn variant="ghost" onClick={() => setSupOpen(false)}>
+                Cancel
+              </Btn>
+              <Btn variant="primary" onClick={submitSup}>
+                {editingSup ? "Save Changes" : "Save Supplier"}
+              </Btn>
+            </div>
           </div>
         </div>
       </Modal>

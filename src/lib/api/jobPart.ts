@@ -8,30 +8,30 @@ export interface JobPartRow {
   JOB_PART_NOTES: string | null;
 }
 
-const API = "http://localhost/gadgetworld-api/job_parts.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchJobParts(jobId: string): Promise<JobPartRow[]> {
-  const res = await fetch(`${API}?job_id=${encodeURIComponent(jobId)}`);
+  const res = await fetch(`${API_BASE}/job_parts.php?job_id=${encodeURIComponent(jobId)}`);
   if (!res.ok) throw new Error("Failed to fetch job parts");
   return res.json();
 }
 
 export async function addJobPart(jobId: string, partId: string, qty: number) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify({ job_id: jobId, part_id: partId, qty }) });
+  const res = await fetch(`${API_BASE}/job_parts.php`, { method: "POST", body: JSON.stringify({ job_id: jobId, part_id: partId, qty }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to link part");
   return data;
 }
 
 export async function updateJobPartQty(jobPartId: string, qty: number) {
-  const res = await fetch(API, { method: "PUT", body: JSON.stringify({ id: jobPartId, qty }) });
+  const res = await fetch(`${API_BASE}/job_parts.php`, { method: "PUT", body: JSON.stringify({ id: jobPartId, qty }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to update part qty");
   return data;
 }
 
 export async function removeJobPart(jobPartId: string) {
-  const res = await fetch(`${API}?id=${encodeURIComponent(jobPartId)}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/job_parts.php?id=${encodeURIComponent(jobPartId)}`, { method: "DELETE" });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to remove part");
   return data;

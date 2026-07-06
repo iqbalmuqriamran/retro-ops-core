@@ -49,16 +49,16 @@ function FinancePage() {
       });
   }, []);
 
-  const filtered = useMemo(() => {
-    const s = q.toLowerCase();
-    return invoices
-      .filter((i) => {
-        const name = `${i.CUST_FNAME} ${i.CUST_LNAME}`.toLowerCase();
-        return !s || i.INVOICE_ID.toLowerCase().includes(s) || name.includes(s);
-      })
-      .slice()
-      .sort((a, b) => (b.INVOICE_DATE ?? "").localeCompare(a.INVOICE_DATE ?? ""));
-  }, [invoices, q]);
+      const filtered = useMemo(() => {
+      const s = q.toLowerCase();
+      return invoices
+        .filter((i) => {
+          const name = `${i.CUST_FNAME} ${i.CUST_LNAME}`.toLowerCase();
+          return !s || i.INVOICE_ID.toLowerCase().includes(s) || name.includes(s);
+        })
+        .slice()
+        .sort((a, b) => new Date(b.INVOICE_DATE ?? 0).getTime() - new Date(a.INVOICE_DATE ?? 0).getTime());
+    }, [invoices, q]);
 
   const totals = {
     paid: invoices.filter((i) => i.INVOICE_STATUS === "Paid").reduce((s, i) => s + i.INVOICE_TOTALAMOUNT, 0),

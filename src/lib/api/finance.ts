@@ -60,30 +60,28 @@ export const PAYMENT_METHODS = [
   "Boost",
 ] as const;
 
-const INVOICE_API = "http://localhost/gadgetworld-api/invoice.php";
-const PAYMENT_API = "http://localhost/gadgetworld-api/payment.php";
-const STAFF_API = "http://localhost/gadgetworld-api/staff.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchInvoices(): Promise<InvoiceRow[]> {
-  const res = await fetch(INVOICE_API);
+  const res = await fetch(`${API_BASE}/invoice.php`);
   if (!res.ok) throw new Error("Failed to fetch invoices");
   return res.json();
 }
 
 export async function fetchStaffList(): Promise<StaffRow[]> {
-  const res = await fetch(STAFF_API);
+  const res = await fetch(`${API_BASE}/staff.php`);
   if (!res.ok) throw new Error("Failed to fetch staff");
   return res.json();
 }
 
 export async function fetchPaymentInfo(invoiceId: string): Promise<PaymentInfo | null> {
-  const res = await fetch(`${PAYMENT_API}?invoice_id=${encodeURIComponent(invoiceId)}`);
+  const res = await fetch(`${API_BASE}/payment.php?invoice_id=${encodeURIComponent(invoiceId)}`);
   if (!res.ok) throw new Error("Failed to fetch payment info");
   return res.json();
 }
 
 export async function settleInvoice(invoiceId: string, staffId: string, method: string) {
-  const res = await fetch(PAYMENT_API, {
+  const res = await fetch(`${API_BASE}/payment.php`, {
     method: "POST",
     body: JSON.stringify({ invoice_id: invoiceId, staff_id: staffId, method }),
   });

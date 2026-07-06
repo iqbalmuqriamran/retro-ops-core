@@ -69,7 +69,7 @@ function StaffPage() {
   }, [user]);
 
   const sorted = useMemo(
-    () => staff.slice().sort((a, b) => (b.STAFF_HIREDATE ?? "").localeCompare(a.STAFF_HIREDATE ?? "")),
+    () => staff.slice().sort((a, b) => new Date(b.STAFF_HIREDATE ?? 0).getTime() - new Date(a.STAFF_HIREDATE ?? 0).getTime()),
     [staff]
   );
   const payroll = useMemo(() => staff.reduce((s, x) => s + (x.STAFF_SALARY || 0), 0), [staff]);
@@ -125,6 +125,27 @@ function StaffPage() {
       toast.error("NAME + PHONE REQUIRED");
       return;
     }
+    if (!/^[a-zA-Z\s'\-]+$/.test(form.fname.trim())) {
+      toast.error("FIRST NAME MUST CONTAIN LETTERS ONLY");
+      return;
+    }
+    if (form.lname?.trim() && !/^[a-zA-Z\s'\-]+$/.test(form.lname.trim())) {
+      toast.error("LAST NAME MUST CONTAIN LETTERS ONLY");
+      return;
+    }
+    if (!/^[0-9+\-\s]{7,15}$/.test(form.phone.trim())) {
+      toast.error("PHONE MUST BE 7-15 DIGITS");
+      return;
+    }
+    if (form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      toast.error("INVALID EMAIL FORMAT");
+      return;
+    }
+    if (form.salary === undefined || form.salary === null || Number(form.salary) < 0) {
+      toast.error("SALARY MUST BE 0 OR MORE");
+      return;
+    }
+
     try {
       if (editing) {
         await updateStaff(editing.STAFF_ID, { ...form, status });
@@ -270,7 +291,17 @@ function StaffPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Phone">
-              <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <input
+                className={inputCls}
+                value={form.phone}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3, 11)}` : digits;
+                  setForm({ ...form, phone: formatted });
+                }}
+                placeholder="012-3456789"
+                maxLength={12}
+              />
             </Field>
             <Field label="Email">
               <input className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -339,7 +370,17 @@ function StaffPage() {
               <input className={inputCls} value={form.ecname} onChange={(e) => setForm({ ...form, ecname: e.target.value })} />
             </Field>
             <Field label="Emergency Contact Number">
-              <input className={inputCls} value={form.ecnumber} onChange={(e) => setForm({ ...form, ecnumber: e.target.value })} />
+              <input
+                className={inputCls}
+                value={form.ecnumber}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3, 11)}` : digits;
+                  setForm({ ...form, ecnumber: formatted });
+                }}
+                placeholder="012-3456789"
+                maxLength={12}
+              />
             </Field>
           </div>
           <Field label="Notes">

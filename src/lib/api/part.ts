@@ -12,10 +12,10 @@ export interface PartRow {
   PART_NOTES: string | null;
 }
 
-const API = "http://localhost/gadgetworld-api/part.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchParts(): Promise<PartRow[]> {
-  const res = await fetch(API);
+  const res = await fetch(`${API_BASE}/part.php`);
   if (!res.ok) throw new Error("Failed to fetch parts");
   return res.json();
 }

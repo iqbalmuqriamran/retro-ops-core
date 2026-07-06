@@ -16,16 +16,16 @@ export interface JobRow {
 
 export const JOB_STATUSES = ["Pending", "In Progress", "Completed", "Failed", "Cancelled"];
 
-const API = "http://localhost/gadgetworld-api/jobs.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchJobs(): Promise<JobRow[]> {
-  const res = await fetch(API);
+  const res = await fetch(`${API_BASE}/jobs.php`);
   if (!res.ok) throw new Error("Failed to fetch jobs");
   return res.json();
 }
 
 export async function createJob(payload: { ticket_id: string; staff_id: string }) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify(payload) });
+  const res = await fetch(`${API_BASE}/jobs.php`, { method: "POST", body: JSON.stringify(payload) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to open job");
   return data as { success: true; JOB_ID: string };
@@ -37,14 +37,14 @@ export async function updateJob(id: string, payload: {
   action: string;
   status: string;
 }) {
-  const res = await fetch(API, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
+  const res = await fetch(`${API_BASE}/jobs.php`, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to update job");
   return data;
 }
 
 export async function closeJob(id: string) {
-  const res = await fetch(`${API}?action=close`, { method: "PUT", body: JSON.stringify({ id }) });
+  const res = await fetch(`${API_BASE}/jobs.php?action=close`, { method: "PUT", body: JSON.stringify({ id }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to close job");
   return data as { success: true; total: number };

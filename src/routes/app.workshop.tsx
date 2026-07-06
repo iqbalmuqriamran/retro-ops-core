@@ -114,7 +114,7 @@ function WorkshopPage() {
       .sort((a, b) => {
         const ta = tickets.find(t => t.TICKET_ID === a.TICKET_ID)?.TICKET_DATE ?? "";
         const tb = tickets.find(t => t.TICKET_ID === b.TICKET_ID)?.TICKET_DATE ?? "";
-        return tb.localeCompare(ta);
+        return new Date(tb ?? 0).getTime() - new Date(ta ?? 0).getTime();
       });
   }, [jobs, tickets, q, statusFilter]);
 

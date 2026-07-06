@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { PageHeader, Block, Btn, Modal, Field, inputCls, Empty, RowActions, Badge } from "@/components/brutalist";
 import { Plus, Clock, Shield, Tag } from "lucide-react";
+
 import {
   fetchServices,
   createService,
@@ -43,6 +44,11 @@ function ServicesPage() {
       .finally(() => setLoading(false));
   };
 
+  const sortedServices = useMemo(
+    () => services.slice().sort((a, b) => b.SERVICE_ID.localeCompare(a.SERVICE_ID)),
+    [services]
+  );
+
   useEffect(() => {
     loadServices();
   }, []);
@@ -70,9 +76,30 @@ function ServicesPage() {
 
   const submit = async () => {
     if (!form.name.trim()) {
-      toast.error("SERVICE NAME REQUIRED");
+      toast.error("SERVICE NAME IS REQUIRED");
       return;
     }
+    if (!/[a-zA-Z]/.test(form.name.trim())) {
+      toast.error("SERVICE NAME MUST CONTAIN LETTERS");
+      return;
+    }
+    if (!form.category?.trim()) {
+      toast.error("CATEGORY IS REQUIRED");
+      return;
+    }
+    if (form.price === undefined || form.price === null || Number(form.price) < 0) {
+      toast.error("BASE PRICE MUST BE 0 OR MORE");
+      return;
+    }
+    if (form.duration === undefined || form.duration === null || Number(form.duration) < 0) {
+      toast.error("ESTIMATED DURATION MUST BE 0 OR MORE");
+      return;
+    }
+    if (form.warranty === undefined || form.warranty === null || Number(form.warranty) < 0) {
+      toast.error("WARRANTY DAYS MUST BE 0 OR MORE");
+      return;
+    }
+
     try {
       if (editing) {
         await updateService(editing.SERVICE_ID, { ...form, status });
@@ -131,7 +158,7 @@ function ServicesPage() {
         <Empty>No services in catalog.</Empty>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {services.map((s, i) => {
+          {sortedServices.map((s, i) => {
             const accent = i % 3 === 0 ? "bg-primary text-primary-foreground" : i % 3 === 1 ? "bg-accent" : "bg-ink text-cream";
             return (
               <Block key={s.SERVICE_ID} className="brutal-shadow-sm overflow-hidden">

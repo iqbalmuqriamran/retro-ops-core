@@ -43,11 +43,12 @@ export const PART_CATEGORIES = [
 
 export const SUPPLIER_STATUSES = ["Active", "Inactive", "Blacklisted"] as const;
 
-const PART_API = "http://localhost/gadgetworld-api/part.php";
-const SUPPLIER_API = "http://localhost/gadgetworld-api/supplier.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
+
+
 
 export async function fetchParts(): Promise<PartRow[]> {
-  const res = await fetch(PART_API);
+  const res = await fetch(`${API_BASE}/part.php`);
   if (!res.ok) throw new Error("Failed to fetch parts");
   return res.json();
 }
@@ -64,28 +65,28 @@ export interface PartPayload {
 }
 
 export async function createPart(payload: PartPayload) {
-  const res = await fetch(PART_API, { method: "POST", body: JSON.stringify(payload) });
+  const res = await fetch(`${API_BASE}/part.php`, { method: "POST", body: JSON.stringify(payload) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to create part");
   return data as { success: true; PART_ID: string };
 }
 
 export async function updatePart(id: string, payload: PartPayload) {
-  const res = await fetch(PART_API, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
+  const res = await fetch(`${API_BASE}/part.php`, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to update part");
   return data;
 }
 
 export async function deletePartApi(id: string) {
-  const res = await fetch(`${PART_API}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/part.php?id=${encodeURIComponent(id)}`, { method: "DELETE" });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to delete part");
   return data;
 }
 
 export async function fetchSuppliers(): Promise<SupplierRow[]> {
-  const res = await fetch(SUPPLIER_API);
+  const res = await fetch(`${API_BASE}/supplier.php`);
   if (!res.ok) throw new Error("Failed to fetch suppliers");
   return res.json();
 }
@@ -100,25 +101,26 @@ export interface SupplierPayload {
   city: string;
   postcode: string;
   state: string;
+  status: string;
   notes: string;
 }
 
 export async function createSupplier(payload: SupplierPayload) {
-  const res = await fetch(SUPPLIER_API, { method: "POST", body: JSON.stringify(payload) });
+  const res = await fetch(`${API_BASE}/supplier.php`, { method: "POST", body: JSON.stringify(payload) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to create supplier");
   return data as { success: true; SUPPLIER_ID: string };
 }
 
 export async function updateSupplier(id: string, payload: SupplierPayload) {
-  const res = await fetch(SUPPLIER_API, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
+  const res = await fetch(`${API_BASE}/supplier.php`, { method: "PUT", body: JSON.stringify({ id, ...payload }) });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to update supplier");
   return data;
 }
 
 export async function deleteSupplierApi(id: string) {
-  const res = await fetch(`${SUPPLIER_API}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/supplier.php?id=${encodeURIComponent(id)}`, { method: "DELETE" });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error ?? "Failed to delete supplier");
   return data;

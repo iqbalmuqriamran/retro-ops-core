@@ -19,10 +19,10 @@ export interface DashboardStats {
   serviceBreakdown: ServiceRevenuePoint[];
 }
 
-const API = "http://localhost/gadgetworld-api/dashboard.php";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const res = await fetch(API);
+  const res = await fetch(`${API_BASE}/dashboard.php`);
   if (!res.ok) throw new Error("Failed to fetch dashboard stats");
   return res.json();
 }
