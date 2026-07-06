@@ -20,6 +20,8 @@ import {
   DEVICE_CONDITIONS_DB,
   type DeviceRow,
 } from "@/lib/api/device";
+import { fetchBrands, createBrand, type BrandRow } from "@/lib/api/brands";
+import { fetchModels, createModel, type ModelRow } from "@/lib/api/models";
 
 export const Route = createFileRoute("/app/customers")({
   component: CustomersPage,
@@ -68,6 +70,11 @@ function CustomersPage() {
   const [deviceForm, setDeviceForm] = useState<DeviceForm>(blankDevice);
   const [linkTarget, setLinkTarget] = useState<string | null>(null);
 
+  const [brands, setBrands] = useState<BrandRow[]>([]);
+  const [models, setModels] = useState<ModelRow[]>([]);
+  const [brandKey, setBrandKey] = useState<string>(""); // holds BRAND_ID or "OTHER"
+  const [modelKey, setModelKey] = useState<string>(""); // holds MODEL_ID or "OTHER"
+
   const loadCustomers = () => {
     setLoading(true);
     fetchCustomers()
@@ -87,6 +94,24 @@ function CustomersPage() {
   useEffect(() => {
     loadCustomers();
   }, []);
+
+  useEffect(() => {
+    fetchBrands()
+      .then(setBrands)
+      .catch(() => {
+        // non-fatal, dropdown just falls back to "Other"
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!brandKey || brandKey === "OTHER") {
+      setModels([]);
+      return;
+    }
+    fetchModels(brandKey)
+      .then(setModels)
+      .catch(() => setModels([]));
+  }, [brandKey]);
 
   useEffect(() => {
     if (selectedId) {
@@ -179,36 +204,58 @@ function CustomersPage() {
       setModalOpen(false);
       loadCustomers();
 
-      setLinkTarget(result.CUST_ID);
+    setLinkTarget(result.CUST_ID);
+      resetDeviceModal();
+      setDeviceModal(true);
+      } catch (err: any) {
+        toast.error(err.message ?? "Failed to save customer");
+      }
+    };
+    
+    const resetDeviceModal = () => {
       setEditingDevice(null);
       setDeviceForm(blankDevice);
-      setDeviceModal(true);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to save customer");
-    }
-  };
+      setBrandKey("");
+      setModelKey("");
+      setModels([]);
+    };
 
   const openLinkDeviceForSelected = () => {
     if (!selectedId) return;
     setLinkTarget(selectedId);
-    setEditingDevice(null);
-    setDeviceForm(blankDevice);
+    resetDeviceModal();
     setDeviceModal(true);
   };
 
   const openEditDevice = (d: DeviceRow) => {
-    setEditingDevice(d);
-    setLinkTarget(d.CUST_ID);
-    setDeviceForm({
-      brand: d.DEVICE_BRAND,
-      model: d.DEVICE_MODEL,
-      modelyear: d.DEVICE_MODELYEAR ?? "",
-      type: d.DEVICE_TYPE,
-      serial: d.DEVICE_SERIALNUMBER,
-      condition: d.DEVICE_CONDITION,
-      issue: d.DEVICE_ISSUE,
-      notes: d.DEVICE_NOTES ?? "",
-    });
+  setEditingDevice(d);
+  setLinkTarget(d.CUST_ID);
+  setDeviceForm({
+    brand: d.DEVICE_BRAND,
+    model: d.DEVICE_MODEL,
+    modelyear: d.DEVICE_MODELYEAR ?? "",
+    type: d.DEVICE_TYPE,
+    serial: d.DEVICE_SERIALNUMBER,
+    condition: d.DEVICE_CONDITION,
+    issue: d.DEVICE_ISSUE,
+    notes: d.DEVICE_NOTES ?? "",
+  });
+
+  const matchedBrand = brands.find((b) => b.BRAND_NAME === d.DEVICE_BRAND);
+    if (matchedBrand) {
+      setBrandKey(matchedBrand.BRAND_ID);
+      fetchModels(matchedBrand.BRAND_ID)
+        .then((ms) => {
+          setModels(ms);
+          const matchedModel = ms.find((m) => m.MODEL_NAME === d.DEVICE_MODEL);
+          setModelKey(matchedModel ? matchedModel.MODEL_ID : "OTHER");
+        })
+        .catch(() => setModelKey("OTHER"));
+    } else {
+      setBrandKey("OTHER");
+      setModelKey("OTHER");
+    }
+
     setDeviceModal(true);
   };
 
@@ -220,6 +267,25 @@ function CustomersPage() {
     }
 
     try {
+      // auto-insert new brand/model into lookup tables if "Other" was used
+      if (brandKey === "OTHER" && deviceForm.brand.trim()) {
+        try {
+          const result = await createBrand(deviceForm.brand.trim());
+          if (modelKey === "OTHER" && deviceForm.model.trim()) {
+            await createModel(result.BRAND_ID, deviceForm.model.trim());
+          }
+          fetchBrands().then(setBrands).catch(() => {});
+        } catch {
+          // non-fatal — device save still proceeds with free text
+        }
+      } else if (brandKey && modelKey === "OTHER" && deviceForm.model.trim()) {
+        try {
+          await createModel(brandKey, deviceForm.model.trim());
+        } catch {
+          // non-fatal
+        }
+      }
+
       if (editingDevice) {
         await updateDevice(editingDevice.DEVICE_ID, {
           brand: deviceForm.brand,
@@ -237,7 +303,7 @@ function CustomersPage() {
         toast.success("DEVICE LINKED");
       }
       setDeviceForm(blankDevice);
-      setEditingDevice(null);
+      resetDeviceModal();
       setDeviceModal(false);
       if (selectedId === targetCustomer) loadDevicesForCustomer(targetCustomer);
       fetchDevices().then((all) => {
@@ -492,10 +558,67 @@ function CustomersPage() {
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="Brand">
-              <input className={inputCls} value={deviceForm.brand} onChange={(e) => setDeviceForm({ ...deviceForm, brand: e.target.value })} />
+              <select
+                className={inputCls}
+                value={brandKey}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setBrandKey(val);
+                  setModelKey("");
+                  if (val === "OTHER") {
+                    setDeviceForm({ ...deviceForm, brand: "", model: "" });
+                  } else {
+                    const b = brands.find((br) => br.BRAND_ID === val);
+                    setDeviceForm({ ...deviceForm, brand: b?.BRAND_NAME ?? "", model: "" });
+                  }
+                }}
+              >
+                <option value="" disabled>Select brand…</option>
+                {brands.map((b) => (
+                  <option key={b.BRAND_ID} value={b.BRAND_ID}>{b.BRAND_NAME}</option>
+                ))}
+                <option value="OTHER">Other</option>
+              </select>
+              {brandKey === "OTHER" && (
+                <input
+                  className={inputCls + " mt-2"}
+                  placeholder="Enter brand"
+                  value={deviceForm.brand}
+                  onChange={(e) => setDeviceForm({ ...deviceForm, brand: e.target.value })}
+                />
+              )}
             </Field>
+
             <Field label="Model">
-              <input className={inputCls} value={deviceForm.model} onChange={(e) => setDeviceForm({ ...deviceForm, model: e.target.value })} />
+              <select
+                className={inputCls}
+                value={modelKey}
+                disabled={!brandKey}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setModelKey(val);
+                  if (val === "OTHER") {
+                    setDeviceForm({ ...deviceForm, model: "" });
+                  } else {
+                    const m = models.find((mo) => mo.MODEL_ID === val);
+                    setDeviceForm({ ...deviceForm, model: m?.MODEL_NAME ?? "" });
+                  }
+                }}
+              >
+                <option value="" disabled>Select model…</option>
+                {models.map((m) => (
+                  <option key={m.MODEL_ID} value={m.MODEL_ID}>{m.MODEL_NAME}</option>
+                ))}
+                <option value="OTHER">Other</option>
+              </select>
+              {modelKey === "OTHER" && (
+                <input
+                  className={inputCls + " mt-2"}
+                  placeholder="Enter model"
+                  value={deviceForm.model}
+                  onChange={(e) => setDeviceForm({ ...deviceForm, model: e.target.value })}
+                />
+              )}
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
